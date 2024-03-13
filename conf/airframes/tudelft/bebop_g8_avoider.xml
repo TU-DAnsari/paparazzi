@@ -29,7 +29,11 @@
       <define name="COLOR_OBJECT_DETECTOR_CR_MAX2" value="140"/>
 
 =======
+<<<<<<< HEAD
 >>>>>>> 4dbfe1347 (add orange avoidance control)
+=======
+>>>>>>> 81f99e0ac (add orange avoidance control)
+>>>>>>> f8b3d110f (add orange avoidance control)
     </target>
     <target name="nps" board="pc">
       <module name="fdm" type="gazebo"/>
@@ -53,7 +57,11 @@
       <define name="COLOR_OBJECT_DETECTOR_CR_MIN2" value="0"/>
       <define name="COLOR_OBJECT_DETECTOR_CR_MAX2" value="130"/>
 =======
+<<<<<<< HEAD
 >>>>>>> 4dbfe1347 (add orange avoidance control)
+=======
+>>>>>>> 81f99e0ac (add orange avoidance control)
+>>>>>>> f8b3d110f (add orange avoidance control)
     </target>
     
     <define name="ARRIVED_AT_WAYPOINT" value="0.5"/><!-- Detect arrival at waypoint when within 0.5m -->
@@ -101,7 +109,11 @@
     </module>
     <module name="our_avoider">
       <define name="ORANGE_AVOIDER_VISUAL_DETECTION_ID" value="COLOR_OBJECT_DETECTION1_ID"/>
+<<<<<<< HEAD
 >>>>>>> 4dbfe1347 (add orange avoidance control)
+=======
+>>>>>>> 81f99e0ac (add orange avoidance control)
+>>>>>>> f8b3d110f (add orange avoidance control)
     </module>
     <module name="video_rtp_stream">
       <define name="VIEWVIDEO_CAMERA" value="front_camera"/>

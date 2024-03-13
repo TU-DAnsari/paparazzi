@@ -12,11 +12,25 @@ The color filter settings are set using the cv_detect_color_object. This module 
 so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTION_ID setting.
     </description>
     <define name="ORANGE_AVOIDER_VISUAL_DETECTION_ID" value="ABI_BROADCAST" description="which VISUAL_DETECTION message to recieve for orange pole detection."/>
+<<<<<<< HEAD
     <define name="FLOOR_VISUAL_DETECTION_ID" value="ABI_BROADCAST" description="which VISUAL_DETECTION message to recieve for green floor detection."/>
   </doc>
 
   <dep>
     <depends>cv_detect_color_region</depends>
+=======
+  </doc>
+    <settings>
+    <dl_settings>
+      <dl_settings name="OrangeAvoider">
+         <dl_setting var="oa_color_count_frac" min="0" step="0.01" max="0.5"/>
+      </dl_settings>
+    </dl_settings>
+  </settings>
+  
+  <dep>
+    <depends>cv_detect_color_object</depends>
+>>>>>>> 81f99e0ac (add orange avoidance control)
   </dep>
   <header>
     <file name="our_avoider.h"/>
