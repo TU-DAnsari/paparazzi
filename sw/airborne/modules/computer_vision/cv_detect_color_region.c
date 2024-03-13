@@ -70,6 +70,10 @@ uint8_t cod_cr_max2 = 0;
 bool cod_draw1 = false;
 bool cod_draw2 = false;
 
+<<<<<<< HEAD
+=======
+// define global variables
+>>>>>>> 4dbfe1347 (add orange avoidance control)
 struct Region {
   uint16_t x_start;
   uint16_t y_start;
@@ -78,23 +82,34 @@ struct Region {
 };
 
 struct count_object_t {
+<<<<<<< HEAD
   uint16_t color_count_a;
   uint16_t color_count_b;
   uint16_t color_count_c;
   uint16_t color_count_d;
   uint32_t color_count_total;
+=======
+  uint32_t color_count_a;
+  uint32_t color_count_b;
+  uint32_t color_count_c;
+  uint32_t color_count_d;
+>>>>>>> 4dbfe1347 (add orange avoidance control)
   bool updated;
 };
 
 struct count_object_t global_filters[2];
 
 // Function
+<<<<<<< HEAD
 struct count_object_t count_pixel_region(struct image_t *img,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max);
 
 struct count_object_t count_pixel_total(struct image_t *img,
+=======
+uint32_t count_pixel_region(struct image_t *img,
+>>>>>>> 4dbfe1347 (add orange avoidance control)
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max);
@@ -121,6 +136,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
       cr_min = cod_cr_min1;
       cr_max = cod_cr_max1;
       draw = cod_draw1;
+<<<<<<< HEAD
 
       struct count_object_t region_counts = count_pixel_region(img, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
 
@@ -132,6 +148,8 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
       global_filters[filter-1].color_count_total = 0;
       global_filters[filter-1].updated = true;
       pthread_mutex_unlock(&mutex);
+=======
+>>>>>>> 4dbfe1347 (add orange avoidance control)
       break;
     case 2:
       lum_min = cod_lum_min2;
@@ -141,6 +159,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
       cr_min = cod_cr_min2;
       cr_max = cod_cr_max2;
       draw = cod_draw2;
+<<<<<<< HEAD
 
       struct count_object_t total_count = count_pixel_total(img, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
 
@@ -152,10 +171,29 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
       global_filters[filter-1].color_count_total = total_count.color_count_total;
       global_filters[filter-1].updated = true;
       pthread_mutex_unlock(&mutex);
+=======
+>>>>>>> 4dbfe1347 (add orange avoidance control)
       break;
     default:
       return img;
   };
+<<<<<<< HEAD
+=======
+
+  int32_t x_c, y_c;
+
+  // Filter and find centroid
+  uint32_t *region_counts = count_pixel_region(img, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
+
+  pthread_mutex_lock(&mutex);
+  global_filters[filter-1].color_count_a = region_counts[0];
+  global_filters[filter-1].color_count_a = region_counts[1];
+  global_filters[filter-1].color_count_a = region_counts[2];
+  global_filters[filter-1].color_count_a = region_counts[3];
+  global_filters[filter-1].updated = true;
+  pthread_mutex_unlock(&mutex);
+
+>>>>>>> 4dbfe1347 (add orange avoidance control)
   return img;
 }
 
@@ -208,14 +246,37 @@ void color_object_detector_init(void)
 #endif
 }
 
+<<<<<<< HEAD
 
 struct count_object_t count_pixel_region(struct image_t *img,
+=======
+/*
+ * find_object_centroid
+ *
+ * Finds the centroid of pixels in an image within filter bounds.
+ * Also returns the amount of pixels that satisfy these filter bounds.
+ *
+ * @param img - input image to process formatted as YUV422.
+ * @param p_xc - x coordinate of the centroid of color object
+ * @param p_yc - y coordinate of the centroid of color object
+ * @param lum_min - minimum y value for the filter in YCbCr colorspace
+ * @param lum_max - maximum y value for the filter in YCbCr colorspace
+ * @param cb_min - minimum cb value for the filter in YCbCr colorspace
+ * @param cb_max - maximum cb value for the filter in YCbCr colorspace
+ * @param cr_min - minimum cr value for the filter in YCbCr colorspace
+ * @param cr_max - maximum cr value for the filter in YCbCr colorspace
+ * @param draw - whether or not to draw on image
+ * @return number of pixels of image within the filter bounds.
+ */
+uint32_t count_pixel_region(struct image_t *img,
+>>>>>>> 4dbfe1347 (add orange avoidance control)
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max)
 {
 
   struct Region regions[] = {
+<<<<<<< HEAD
     {img->w / 3, 0 * img->h / 4, img->w / 3, img->h / 4},  
     {img->w / 3, 1 * img->h / 4, img->w / 3, img->h / 4},
     {img->w / 3, 2 * img->h / 4, img->w / 3, img->h / 4},
@@ -225,11 +286,24 @@ struct count_object_t count_pixel_region(struct image_t *img,
   struct count_object_t counts_object;
 
   uint16_t counts[4];
+=======
+    {img->w / 3, 0 * img->h / 4, img->w / 3, img->h / 4},               // Region 1
+    {img->w / 3, 1 * img->h / 4, img->w / 3, img->h / 4},      // Region 2
+    {img->w / 3, 2 * img->h / 4, img->w / 3, img->h / 4},      // Region 3
+    {img->w / 3, 3 * img->h / 4, img->w / 3, img->h / 4}   
+  };
+
+  uint32_t counts[4];
+>>>>>>> 4dbfe1347 (add orange avoidance control)
   uint8_t *buffer = img->buf;
 
   for(int i = 0; i < 4; i++) {
     counts[i] = 0;
+<<<<<<< HEAD
     }
+=======
+  }
+>>>>>>> 4dbfe1347 (add orange avoidance control)
 
   // Go through all the pixels
   for (uint16_t y = 0; y < img->h; y++) {
@@ -250,8 +324,14 @@ struct count_object_t count_pixel_region(struct image_t *img,
         yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
       }
       for (int i = 0; i < 4; i++) {
+<<<<<<< HEAD
         if (x >= regions[i].x_start && x < regions[i].x_start + regions[i].width &&
             y >= regions[i].y_start && y < regions[i].y_start + regions[i].height &&
+=======
+        struct Region region = regions[i];
+        if (x >= region.x_start && x < region.x_start + region.width &&
+            y >= region.y_start && y < region.y_start + region.height &&
+>>>>>>> 4dbfe1347 (add orange avoidance control)
             (*yp >= lum_min) && (*yp <= lum_max) &&
             (*up >= cb_min ) && (*up <= cb_max ) &&
             (*vp >= cr_min ) && (*vp <= cr_max )) {
@@ -261,6 +341,7 @@ struct count_object_t count_pixel_region(struct image_t *img,
       }
     }
   }
+<<<<<<< HEAD
 
   counts_object.color_count_a = counts[0];
   counts_object.color_count_b = counts[1];
@@ -311,6 +392,11 @@ struct count_object_t count_pixel_total(struct image_t *img,
 }
 
 
+=======
+  return counts;
+}
+
+>>>>>>> 4dbfe1347 (add orange avoidance control)
 void color_object_detector_periodic(void)
 {
   static struct count_object_t local_filters[2];
@@ -329,7 +415,15 @@ void color_object_detector_periodic(void)
   }
   if(local_filters[1].updated){
     AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION2_ID, 
+<<<<<<< HEAD
     0, 0, 0, 0, local_filters[1].color_count_total, 0);
+=======
+    local_filters[1].color_count_a, 
+    local_filters[1].color_count_b,
+    local_filters[1].color_count_c,
+    local_filters[1].color_count_d,
+    0, 0);
+>>>>>>> 4dbfe1347 (add orange avoidance control)
     local_filters[1].updated = false;
   }
 }
