@@ -64,6 +64,7 @@ enum navigation_state_t {
   LEFT_LINE
 };
 
+<<<<<<< HEAD
 // xy velocity settings
 float forward_velocity = .7f;
 float turning_rate = .5f;
@@ -75,15 +76,25 @@ float k_inner = .4f;
 // green detection settings
 float floor_count_frac = 0.1;
 
+=======
+// define settings
+float forward_velocity = .5f;
+float k_outer = .2f;
+float k_inner = .4f;
+
+>>>>>>> 3ff52f613 (fix segmentation issues for very simple autonomous flight)
 int16_t color_count_a = 0;
 int16_t color_count_b = 0; 
 int16_t color_count_c = 0; 
 int16_t color_count_d = 0; 
+<<<<<<< HEAD
 
 int32_t floor_count = 0;
 
 enum navigation_state_t navigation_state = SAFE;
 
+=======
+>>>>>>> 3ff52f613 (fix segmentation issues for very simple autonomous flight)
 
 =======
   OUT_OF_BOUNDS
@@ -165,16 +176,28 @@ void our_avoider_periodic(void)
 {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> f6a3cd2fa (fix segmentation issues for very simple autonomous flight)
   // Only run the mudule if we are in the correct flight mode
   if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
     navigation_state = SEARCH_FOR_SAFE_HEADING;
+=======
+  if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
+>>>>>>> 3ff52f613 (fix segmentation issues for very simple autonomous flight)
     return;
-  }
+  };
 
+<<<<<<< HEAD
   int32_t floor_count_threshold = floor_count_frac * front_camera.output_size.w * front_camera.output_size.h;
+=======
+
+  guidance_h_set_body_vel(forward_velocity, 0);
+>>>>>>> 3ff52f613 (fix segmentation issues for very simple autonomous flight)
 
 
 
+<<<<<<< HEAD
 
   float speed_sp = forward_velocity;
   
@@ -365,7 +388,20 @@ void our_avoider_periodic(void)
       break;
     default:
       break;
+=======
+    float diff_outer = color_count_a - color_count_d;
+    float diff_inner = color_count_b - color_count_c;
+
+    float heading_rate = k_outer * (diff_outer / norm_outer) + k_inner * (diff_inner / norm_inner);
+
+    printf("heading rate: %.2f", heading_rate);
+
+    guidance_h_set_heading_rate(heading_rate);
+  } else {
+    guidance_h_set_heading_rate(0.f);
+>>>>>>> 3ff52f613 (fix segmentation issues for very simple autonomous flight)
   }
+
   return;
 }
 

@@ -96,6 +96,7 @@ struct count_object_t {
 <<<<<<< HEAD
   uint32_t color_count_total;
 =======
+<<<<<<< HEAD
   uint32_t color_count_a;
   uint32_t color_count_b;
   uint32_t color_count_c;
@@ -103,6 +104,9 @@ struct count_object_t {
 >>>>>>> 4dbfe1347 (add orange avoidance control)
 =======
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
+=======
+>>>>>>> 3ff52f613 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> f6a3cd2fa (fix segmentation issues for very simple autonomous flight)
   bool updated;
 };
 
@@ -112,17 +116,22 @@ struct count_object_t global_filters[2];
 <<<<<<< HEAD
 <<<<<<< HEAD
 struct count_object_t count_pixel_region(struct image_t *img,
+<<<<<<< HEAD
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max);
 
 struct count_object_t count_pixel_total(struct image_t *img,
 =======
+<<<<<<< HEAD
 uint32_t count_pixel_region(struct image_t *img,
 >>>>>>> 4dbfe1347 (add orange avoidance control)
 =======
 struct count_object_t count_pixel_region(struct image_t *img,
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
+=======
+>>>>>>> 3ff52f613 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> f6a3cd2fa (fix segmentation issues for very simple autonomous flight)
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max);
@@ -204,7 +213,11 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   global_filters[filter-1].updated = true;
   pthread_mutex_unlock(&mutex);
 
+<<<<<<< HEAD
 >>>>>>> 4dbfe1347 (add orange avoidance control)
+=======
+>>>>>>> 3ff52f613 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> f6a3cd2fa (fix segmentation issues for very simple autonomous flight)
   return img;
 }
 
