@@ -53,6 +53,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
    settings_modules="modules/ahrs_int_cmpl_quat.xml modules/bebop_cam.xml modules/cv_detect_color_region.xml modules/electrical.xml modules/gps.xml modules/guidance_pid_rotorcraft.xml modules/guidance_rotorcraft.xml modules/imu_common.xml modules/ins_extended.xml modules/nav_rotorcraft.xml modules/stabilization_indi_simple.xml modules/video_capture.xml modules/video_rtp_stream.xml"
 =======
    settings_modules="modules/ahrs_int_cmpl_quat.xml modules/bebop_cam.xml modules/cv_detect_color_object.xml modules/cv_opticflow.xml modules/electrical.xml modules/gps.xml modules/guidance_pid_rotorcraft.xml modules/guidance_rotorcraft.xml modules/imu_common.xml modules/ins_extended.xml modules/nav_rotorcraft.xml modules/orange_avoider_guided.xml modules/stabilization_indi_simple.xml modules/video_capture.xml modules/video_rtp_stream.xml"
@@ -70,6 +71,8 @@
 >>>>>>> be59ca1cb (Edge detection)
 =======
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
    settings_modules="modules/ahrs_int_cmpl_quat.xml modules/bebop_cam.xml modules/cv_detect_color_object.xml modules/cv_opticflow.xml modules/electrical.xml modules/gps.xml modules/guidance_pid_rotorcraft.xml modules/guidance_rotorcraft.xml modules/imu_common.xml modules/ins_extended.xml modules/nav_rotorcraft.xml modules/orange_avoider_guided.xml modules/stabilization_indi_simple.xml modules/video_capture.xml modules/video_rtp_stream.xml"
 =======
    settings_modules="modules/ahrs_int_cmpl_quat.xml modules/bebop_cam.xml modules/cv_detect_color_object.xml modules/cv_detect_color_region.xml modules/electrical.xml modules/gps.xml modules/guidance_pid_rotorcraft.xml modules/guidance_rotorcraft.xml modules/imu_common.xml modules/ins_extended.xml modules/nav_rotorcraft.xml modules/our_avoider.xml modules/stabilization_indi_simple.xml modules/video_capture.xml modules/video_rtp_stream.xml"
@@ -144,7 +147,13 @@
 =======
    settings_modules="modules/ahrs_int_cmpl_quat.xml modules/bebop_cam.xml modules/cv_detect_color_object.xml modules/cv_detect_color_region.xml modules/electrical.xml modules/gps.xml modules/guidance_pid_rotorcraft.xml modules/guidance_rotorcraft.xml modules/imu_common.xml modules/ins_extended.xml modules/nav_rotorcraft.xml modules/our_avoider.xml modules/stabilization_indi_simple.xml modules/video_capture.xml modules/video_rtp_stream.xml"
 >>>>>>> 81f99e0ac (add orange avoidance control)
+<<<<<<< HEAD
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+   settings_modules="modules/ahrs_int_cmpl_quat.xml modules/bebop_cam.xml modules/cv_detect_color_region.xml modules/electrical.xml modules/gps.xml modules/guidance_pid_rotorcraft.xml modules/guidance_rotorcraft.xml modules/imu_common.xml modules/ins_extended.xml modules/nav_rotorcraft.xml modules/stabilization_indi_simple.xml modules/video_capture.xml modules/video_rtp_stream.xml"
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
    gui_color="white"
   />
 </conf>

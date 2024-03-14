@@ -73,6 +73,7 @@ bool cod_draw2 = false;
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 // define global variables
 >>>>>>> 4dbfe1347 (add orange avoidance control)
@@ -83,6 +84,13 @@ bool cod_draw2 = false;
 // define global variables
 >>>>>>> 81f99e0ac (add orange avoidance control)
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+// define global variables
+>>>>>>> 81f99e0ac (add orange avoidance control)
+=======
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
 struct Region {
   uint16_t x_start;
   uint16_t y_start;
@@ -94,14 +102,20 @@ struct count_object_t {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
 =======
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
   uint16_t color_count_a;
   uint16_t color_count_b;
   uint16_t color_count_c;
   uint16_t color_count_d;
+<<<<<<< HEAD
 <<<<<<< HEAD
   uint32_t color_count_total;
 =======
@@ -124,7 +138,12 @@ struct count_object_t {
   uint32_t color_count_c;
   uint32_t color_count_d;
 >>>>>>> 81f99e0ac (add orange avoidance control)
+<<<<<<< HEAD
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
   bool updated;
 };
 
@@ -134,8 +153,11 @@ struct count_object_t global_filters[2];
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
 struct count_object_t count_pixel_region(struct image_t *img,
 <<<<<<< HEAD
                               uint8_t lum_min, uint8_t lum_max,
@@ -158,7 +180,13 @@ struct count_object_t count_pixel_region(struct image_t *img,
 =======
 uint32_t count_pixel_region(struct image_t *img,
 >>>>>>> 81f99e0ac (add orange avoidance control)
+<<<<<<< HEAD
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+struct count_object_t count_pixel_region(struct image_t *img,
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max);
@@ -258,16 +286,14 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 =======
 =======
 
-  int32_t x_c, y_c;
 
-  // Filter and find centroid
-  uint32_t *region_counts = count_pixel_region(img, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
+  struct count_object_t region_counts = count_pixel_region(img, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
 
   pthread_mutex_lock(&mutex);
-  global_filters[filter-1].color_count_a = region_counts[0];
-  global_filters[filter-1].color_count_a = region_counts[1];
-  global_filters[filter-1].color_count_a = region_counts[2];
-  global_filters[filter-1].color_count_a = region_counts[3];
+  global_filters[filter-1].color_count_a = region_counts.color_count_a;
+  global_filters[filter-1].color_count_b = region_counts.color_count_b;
+  global_filters[filter-1].color_count_c = region_counts.color_count_c;
+  global_filters[filter-1].color_count_d = region_counts.color_count_d;
   global_filters[filter-1].updated = true;
   pthread_mutex_unlock(&mutex);
 
@@ -328,8 +354,11 @@ void color_object_detector_init(void)
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
 
 struct count_object_t count_pixel_region(struct image_t *img,
 =======
@@ -360,7 +389,14 @@ struct count_object_t count_pixel_region(struct image_t *img,
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
 =======
 >>>>>>> 81f99e0ac (add orange avoidance control)
+<<<<<<< HEAD
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+
+struct count_object_t count_pixel_region(struct image_t *img,
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max)
@@ -386,6 +422,7 @@ struct count_object_t count_pixel_region(struct image_t *img,
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   uint32_t counts[4];
 >>>>>>> 4dbfe1347 (add orange avoidance control)
 =======
@@ -397,10 +434,20 @@ struct count_object_t count_pixel_region(struct image_t *img,
   uint32_t counts[4];
 >>>>>>> 81f99e0ac (add orange avoidance control)
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+  uint32_t counts[4];
+>>>>>>> 81f99e0ac (add orange avoidance control)
+=======
+  struct count_object_t counts_object;
+
+  uint16_t counts[4];
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
   uint8_t *buffer = img->buf;
 
   for(int i = 0; i < 4; i++) {
     counts[i] = 0;
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -412,11 +459,19 @@ struct count_object_t count_pixel_region(struct image_t *img,
     }
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
 =======
+=======
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
     }
 =======
   }
 >>>>>>> 81f99e0ac (add orange avoidance control)
+<<<<<<< HEAD
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+    }
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
 
   // Go through all the pixels
   for (uint16_t y = 0; y < img->h; y++) {
@@ -440,8 +495,11 @@ struct count_object_t count_pixel_region(struct image_t *img,
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
         if (x >= regions[i].x_start && x < regions[i].x_start + regions[i].width &&
             y >= regions[i].y_start && y < regions[i].y_start + regions[i].height &&
 =======
@@ -456,7 +514,14 @@ struct count_object_t count_pixel_region(struct image_t *img,
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
 =======
 >>>>>>> 81f99e0ac (add orange avoidance control)
+<<<<<<< HEAD
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+        if (x >= regions[i].x_start && x < regions[i].x_start + regions[i].width &&
+            y >= regions[i].y_start && y < regions[i].y_start + regions[i].height &&
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
             (*yp >= lum_min) && (*yp <= lum_max) &&
             (*up >= cb_min ) && (*up <= cb_max ) &&
             (*vp >= cr_min ) && (*vp <= cr_max )) {
@@ -469,10 +534,15 @@ struct count_object_t count_pixel_region(struct image_t *img,
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
 =======
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
 
   counts_object.color_count_a = counts[0];
   counts_object.color_count_b = counts[1];
@@ -527,12 +597,17 @@ struct count_object_t count_pixel_total(struct image_t *img,
 =======
   return counts;
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
 }
 
 >>>>>>> 4dbfe1347 (add orange avoidance control)
 =======
+=======
+=======
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
 }
 
 >>>>>>> 81f99e0ac (add orange avoidance control)

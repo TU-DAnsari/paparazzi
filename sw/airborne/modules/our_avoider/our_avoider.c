@@ -110,6 +110,7 @@ enum navigation_state_t navigation_state = SAFE;
 
 // define settings
 <<<<<<< HEAD
+<<<<<<< HEAD
 float forward_velocity = .5f;
 float k_outer = .2f;
 float k_inner = .4f;
@@ -137,6 +138,16 @@ float maxDistance = 2.25;               // max waypoint displacement [m]
 
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+float forward_velocity = .5f;
+float k_outer = .2f;
+float k_inner = .4f;
+
+int16_t color_count_a = 0;
+int16_t color_count_b = 0; 
+int16_t color_count_c = 0; 
+int16_t color_count_d = 0; 
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
 
 /*
  * This next section defines an ABI messaging event (http://wiki.paparazziuav.org/wiki/ABI), necessary
@@ -158,8 +169,11 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
                                int16_t count_region_a, int16_t count_region_b,
                                int16_t count_region_c, int16_t count_region_d,
 =======
@@ -173,7 +187,14 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
 =======
 >>>>>>> 81f99e0ac (add orange avoidance control)
+<<<<<<< HEAD
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+=======
+                               int16_t count_region_a, int16_t count_region_b,
+                               int16_t count_region_c, int16_t count_region_d,
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
                                int32_t __attribute__((unused)) quality, int16_t __attribute__((unused)) extra)
 {
   color_count_a = count_region_a;
@@ -221,10 +242,13 @@ void our_avoider_periodic(void)
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> f6a3cd2fa (fix segmentation issues for very simple autonomous flight)
 =======
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
   // Only run the mudule if we are in the correct flight mode
   if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
     navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -527,6 +551,7 @@ float computePIDheading(float droneheading, float targetheading) {
 =======
   if(!autopilot_in_flight()){
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
 >>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
@@ -536,12 +561,22 @@ float computePIDheading(float droneheading, float targetheading) {
 
   guidance_h_set_body_vel(forward_velocity, 0);
 =======
+=======
+=======
+  if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
     return;
-  }
+  };
 
+<<<<<<< HEAD
   float f_speed = 1.f;
   guidance_h_set_body_vel(f_speed, 0);
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+
+  guidance_h_set_body_vel(forward_velocity, 0);
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
 
   if(color_count_a + color_count_d != 0 && color_count_b + color_count_c != 0) {
 
@@ -550,6 +585,7 @@ float computePIDheading(float droneheading, float targetheading) {
 
     float diff_outer = color_count_a - color_count_d;
     float diff_inner = color_count_b - color_count_c;
+<<<<<<< HEAD
 <<<<<<< HEAD
 
     float heading_rate = k_outer * (diff_outer / norm_outer) + k_inner * (diff_inner / norm_inner);
@@ -561,15 +597,26 @@ float computePIDheading(float droneheading, float targetheading) {
 
     float heading_rate = k_outer * (diff_outer) + k_inner * (diff_inner);
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+
+    float heading_rate = k_outer * (diff_outer / norm_outer) + k_inner * (diff_inner / norm_inner);
+
+    printf("heading rate: %.2f", heading_rate);
+
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
     guidance_h_set_heading_rate(heading_rate);
   } else {
     guidance_h_set_heading_rate(0.f);
   }
 <<<<<<< HEAD
+<<<<<<< HEAD
 
   return;
 >>>>>>> 4dbfe1347 (add orange avoidance control)
 =======
+=======
+
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
   return;
 >>>>>>> 81f99e0ac (add orange avoidance control)
 >>>>>>> f8b3d110f (add orange avoidance control)

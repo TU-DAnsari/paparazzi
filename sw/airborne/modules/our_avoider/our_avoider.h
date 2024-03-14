@@ -17,6 +17,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 extern float floor_count_frac;
 
 =======
@@ -30,6 +31,8 @@ extern float oa_color_count_frac;
 =======
 =======
 >>>>>>> f8b3d110f (add orange avoidance control)
+=======
+>>>>>>> 40402e8be (fix segmentation issues for very simple autonomous flight)
 extern float floor_count_frac;
 
 =======
@@ -42,6 +45,8 @@ extern float floor_count_frac;
 // settings
 extern float oa_color_count_frac;
 
+=======
+>>>>>>> 0c0e654a7 (fix segmentation issues for very simple autonomous flight)
 // functions
 >>>>>>> 81f99e0ac (add orange avoidance control)
 >>>>>>> f8b3d110f (add orange avoidance control)
