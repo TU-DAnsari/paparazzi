@@ -13,8 +13,12 @@
 #ifndef ORANGE_AVOIDER_H
 #define ORANGE_AVOIDER_H
 
+<<<<<<< HEAD
 extern float floor_count_frac;
 
+=======
+// functions
+>>>>>>> 3ff52f613 (fix segmentation issues for very simple autonomous flight)
 extern void our_avoider_init(void);
 extern void our_avoider_periodic(void);
 
