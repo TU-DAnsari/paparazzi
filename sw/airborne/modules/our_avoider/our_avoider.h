@@ -13,9 +13,6 @@
 #ifndef ORANGE_AVOIDER_H
 #define ORANGE_AVOIDER_H
 
-// settings
-extern float oa_color_count_frac;
-
 // functions
 extern void our_avoider_init(void);
 extern void our_avoider_periodic(void);
