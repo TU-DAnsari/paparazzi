@@ -90,23 +90,14 @@ enum navigation_state_t navigation_state = SAFE;
 };
 
 // define settings
-float oa_color_count_frac = 0.18f;
-float k_outer = 1.f;
-float k_inner = 3.f;
+float forward_velocity = .5f;
+float k_outer = .2f;
+float k_inner = .4f;
 
-// define and initialise global variables
-enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-
-int32_t color_count_a = 0;
-int32_t color_count_b = 0; 
-int32_t color_count_c = 0; 
-int32_t color_count_d = 0; 
-
-int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
-float heading_increment = 5.f;          // heading angle increment [deg]
-float maxDistance = 2.25;               // max waypoint displacement [m]
-
-const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
+int16_t color_count_a = 0;
+int16_t color_count_b = 0; 
+int16_t color_count_c = 0; 
+int16_t color_count_d = 0; 
 
 /*
  * This next section defines an ABI messaging event (http://wiki.paparazziuav.org/wiki/ABI), necessary
@@ -122,12 +113,17 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
 static abi_event color_detection_ev;
 static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
 <<<<<<< HEAD
+<<<<<<< HEAD
                                int16_t count_region_a, int16_t count_region_b,
                                int16_t count_region_c, int16_t count_region_d,
 =======
                                int32_t count_region_a, int32_t count_region_b,
                                int32_t count_region_c, int32_t count_region_d,
 >>>>>>> 4dbfe1347 (add orange avoidance control)
+=======
+                               int16_t count_region_a, int16_t count_region_b,
+                               int16_t count_region_c, int16_t count_region_d,
+>>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
                                int32_t __attribute__((unused)) quality, int16_t __attribute__((unused)) extra)
 {
   color_count_a = count_region_a;
@@ -167,6 +163,7 @@ void our_avoider_init(void)
 
 void our_avoider_periodic(void)
 {
+<<<<<<< HEAD
 <<<<<<< HEAD
   // Only run the mudule if we are in the correct flight mode
   if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
@@ -447,11 +444,14 @@ float computePIDheading(float droneheading, float targetheading) {
   return output;
 =======
   if(!autopilot_in_flight()){
+=======
+  if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
+>>>>>>> 0857f044b (fix segmentation issues for very simple autonomous flight)
     return;
-  }
+  };
 
-  float f_speed = 1.f;
-  guidance_h_set_body_vel(f_speed, 0);
+
+  guidance_h_set_body_vel(forward_velocity, 0);
 
   if(color_count_a + color_count_d != 0 && color_count_b + color_count_c != 0) {
 
@@ -460,13 +460,16 @@ float computePIDheading(float droneheading, float targetheading) {
 
     float diff_outer = color_count_a - color_count_d;
     float diff_inner = color_count_b - color_count_c;
-    
 
-    float heading_rate = k_outer * (diff_outer) + k_inner * (diff_inner);
+    float heading_rate = k_outer * (diff_outer / norm_outer) + k_inner * (diff_inner / norm_inner);
+
+    printf("heading rate: %.2f", heading_rate);
+
     guidance_h_set_heading_rate(heading_rate);
   } else {
     guidance_h_set_heading_rate(0.f);
   }
+
   return;
 >>>>>>> 4dbfe1347 (add orange avoidance control)
 }
