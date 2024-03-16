@@ -32,6 +32,10 @@
 #include "modules/core/abi.h"
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
+
+#define NAV_C // needed to get the nav functions like Inside...
+#include "generated/flight_plan.h"
 
 #define ORANGE_AVOIDER_VERBOSE TRUE
 
@@ -43,13 +47,20 @@
 #endif
 
 uint8_t chooseRandomIncrementAvoidance(void);
+float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goaly);
+float computePIDheading(float droneheading, float targetheading);
 
 enum navigation_state_t {
   SAFE,
+  CLOSE_TO_OBSTICLE,
   OBSTACLE_FOUND,
   SEARCH_FOR_SAFE_HEADING,
   OUT_OF_BOUNDS,
-  REENTER_ARENA
+  REENTER_ARENA,
+  TOP_LINE,
+  RIGHT_LINE,
+  BOTTOM_LINE,
+  LEFT_LINE
 };
 
 // define settings
@@ -66,7 +77,7 @@ int32_t floor_centroid = 0;             // floor detector centroid in y directio
 float avoidance_heading_direction = 0;  // heading change direction for avoidance [rad/s]
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead if safe.
 
-const int16_t max_trajectory_confidence = 5;  // number of consecutive negative object detections to be sure we are obstacle free
+const int16_t max_trajectory_confidence = 10;  // number of consecutive negative object detections to be sure we are obstacle free
 
 // This call back will be used to receive the color count from the orange detector
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
@@ -127,7 +138,7 @@ void orange_avoider_guided_periodic(void)
   int32_t floor_count_threshold = oag_floor_count_frac * front_camera.output_size.w * front_camera.output_size.h;
   float floor_centroid_frac = floor_centroid / (float)front_camera.output_size.h / 2.f;
 
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  VERBOSE_PRINT("Color_count: %d, threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
   VERBOSE_PRINT("Floor count: %d, threshold: %d\n", floor_count, floor_count_threshold);
   VERBOSE_PRINT("Floor centroid: %f\n", floor_centroid_frac);
 
@@ -142,15 +153,77 @@ void orange_avoider_guided_periodic(void)
   Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
 
   float speed_sp = fminf(oag_max_speed, 0.2f * obstacle_free_confidence);
+  
+  VERBOSE_PRINT("current position LEFT RIGHT: %f\n", stateGetPositionEnu_f() ->x); //LEFT MINUS RIGHT PLUS
+  VERBOSE_PRINT("current position UP DOWN ENU: %f\n", stateGetPositionEnu_f() ->y); //DOWN MINUS UP PLUS  
+
+  // SOMETHING IS WRONG WITH THE POS VALIES THEY JUST DONT MAKE SENSE
+  float heading = stateGetNedToBodyEulers_f()->psi;
+  FLOAT_ANGLE_NORMALIZE(heading);
+  float heading_deg = DegOfRad(heading) + 25; //+25 since north is at an angle with cyberzoo
+  VERBOSE_PRINT("heading normalized? angle: %f\n", heading_deg);
+  // zero up %%% 180 down %%% positive right %%% negative left
+
+  // have a look at the angles they seem off by about 20 deg
+  // the positions seem off as well
+  // have the headng impact how much we turn when we come to an edge
+
+  // heading pass trough true - to make sure we use optitrack
 
   switch (navigation_state){
     case SAFE:
-      if (floor_count < floor_count_threshold || fabsf(floor_centroid_frac) > 0.12){
-        navigation_state = OUT_OF_BOUNDS;
+      //make sure that the priority is good, might wanna change it a bit
+      if (fabsf(stateGetPositionEnu_f() ->x) > 3.5 || fabsf(stateGetPositionEnu_f() ->y) > 3.5){
+        if(stateGetPositionEnu_f() ->y >= 3.5 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
+          //top side
+          navigation_state = OUT_OF_BOUNDS;
+        } else if(stateGetPositionEnu_f() ->y <= -3.5 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
+          //bottom side 
+          navigation_state = OUT_OF_BOUNDS;
+        } else if(stateGetPositionEnu_f() ->x <= -3.5 && -180 <= heading_deg && heading_deg <= 0){
+          //left side
+          navigation_state = OUT_OF_BOUNDS;
+        } else if(stateGetPositionEnu_f() ->x >= 3.5 && 0 <= heading_deg && heading_deg <= 180){
+          //right side
+          navigation_state = OUT_OF_BOUNDS;
+        } else{
+          guidance_h_set_body_vel(speed_sp, 0);
+          guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
+        }
+      } else if (obstacle_free_confidence < 9 && color_count > color_count_threshold){
+        navigation_state = CLOSE_TO_OBSTICLE;
       } else if (obstacle_free_confidence == 0){
         navigation_state = OBSTACLE_FOUND;
+      } else if (stateGetPositionEnu_f() ->y >= 2.5){
+        // close to edge
+        navigation_state = TOP_LINE;
+      } else if (stateGetPositionEnu_f() ->x >= 2.5){
+        // close to edge
+        navigation_state = RIGHT_LINE;
+      } else if (stateGetPositionEnu_f() ->y <= -2.5){
+        // close to edge
+        navigation_state = BOTTOM_LINE;
+      } else if (stateGetPositionEnu_f() ->x <= -2.5){
+        // close to edge
+        navigation_state = LEFT_LINE;
       } else {
         guidance_h_set_body_vel(speed_sp, 0);
+        guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
+      }
+
+      break;
+    case CLOSE_TO_OBSTICLE:
+      // changes heading randomly for now
+      // later will use the ref heading
+      guidance_h_set_body_vel(0.5 * speed_sp, 0);
+      guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(45));
+
+      if (floor_count < floor_count_threshold || fabsf(floor_centroid_frac) > 0.12){
+        navigation_state = REENTER_ARENA;
+      } else if (obstacle_free_confidence == 0){
+        navigation_state = OBSTACLE_FOUND;
+      } else if (color_count < 0.5 * color_count_threshold){
+        navigation_state = SAFE;
       }
 
       break;
@@ -159,6 +232,7 @@ void orange_avoider_guided_periodic(void)
       guidance_h_set_body_vel(0, 0);
 
       // randomly select new search direction
+      // later will use the ref heading
       chooseRandomIncrementAvoidance();
 
       navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -168,7 +242,7 @@ void orange_avoider_guided_periodic(void)
       guidance_h_set_heading_rate(avoidance_heading_direction * oag_heading_rate);
 
       // make sure we have a couple of good readings before declaring the way safe
-      if (obstacle_free_confidence >= 2){
+      if (obstacle_free_confidence >= 3){
         guidance_h_set_heading(stateGetNedToBodyEulers_f()->psi);
         navigation_state = SAFE;
       }
@@ -178,13 +252,15 @@ void orange_avoider_guided_periodic(void)
       guidance_h_set_body_vel(0, 0);
 
       // start turn back into arena
-      guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(15));
+      guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(20));
 
       navigation_state = REENTER_ARENA;
 
       break;
     case REENTER_ARENA:
-      // force floor center to opposite side of turn to head back into arena
+      // could also use position and attitude to return to the center
+      // would be nice to make a function that takes drone pos and waypoint pos to calc ref heading
+      // force floor center to opposite side of turn to xhead back into arena
       if (floor_count >= floor_count_threshold && avoidance_heading_direction * floor_centroid_frac >= 0.f){
         // return to heading mode
         guidance_h_set_heading(stateGetNedToBodyEulers_f()->psi);
@@ -193,6 +269,74 @@ void orange_avoider_guided_periodic(void)
         obstacle_free_confidence = 0;
 
         // ensure direction is safe before continuing
+        navigation_state = SAFE;
+      }
+      break;
+    case TOP_LINE:
+      if(stateGetPositionEnu_f() ->y >= 3.5 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
+          navigation_state = OUT_OF_BOUNDS;
+      } else if(heading_deg >= 0 && heading_deg <=90){
+        //turn right
+        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_heading_rate(RadOfDeg(90));
+      } else if (heading_deg <= 0 && heading_deg >= -90){
+        //turn left
+        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_heading_rate(-1.0 * RadOfDeg(90));
+      } else{
+        guidance_h_set_body_vel(speed_sp, 0);
+        guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
+        navigation_state = SAFE;
+      }
+      break;
+    case RIGHT_LINE:
+      if(stateGetPositionEnu_f() ->x >= 3.5 && 0 <= heading_deg && heading_deg <= 180){
+          navigation_state = OUT_OF_BOUNDS;
+      } else if(heading_deg >= 90 && heading_deg <=180){
+        //turn right
+        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_heading_rate(RadOfDeg(90));
+      } else if (heading_deg <= 90 && heading_deg >= 0){
+        //turn left
+        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
+      } else{
+        guidance_h_set_body_vel(speed_sp, 0);
+        guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
+        navigation_state = SAFE;
+      }
+      break;
+    case BOTTOM_LINE:
+      if(stateGetPositionEnu_f() ->y <= -3.5 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
+          navigation_state = OUT_OF_BOUNDS;
+      } else if(heading_deg >= -180 && heading_deg <=-90){
+        //turn right
+        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_heading_rate(RadOfDeg(90));
+      } else if (heading_deg <= 180 && heading_deg >= 90){
+        //turn left
+        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
+      } else{
+        guidance_h_set_body_vel(speed_sp, 0);
+        guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
+        navigation_state = SAFE;
+      }
+      break;
+    case LEFT_LINE:
+      if(stateGetPositionEnu_f() ->x <= -3.5 && -180 <= heading_deg && heading_deg <= 0){
+          navigation_state = OUT_OF_BOUNDS;
+      } else if(heading_deg >= -90 && heading_deg <=0){
+        //turn right
+        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_heading_rate(RadOfDeg(90));
+      } else if (heading_deg <= -90 && heading_deg >= -180){
+        //turn left
+        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
+      } else{
+        guidance_h_set_body_vel(speed_sp, 0);
+        guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
         navigation_state = SAFE;
       }
       break;
@@ -216,4 +360,84 @@ uint8_t chooseRandomIncrementAvoidance(void)
     VERBOSE_PRINT("Set avoidance increment to: %f\n", avoidance_heading_direction * oag_heading_rate);
   }
   return false;
+}
+
+float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goaly){
+  // calc the required change in heading
+  // goal is from the path planning
+  // difference will be used for the heading rate command
+
+  // heading
+  // zero up %%% 180 down %%% positive right %%% negative left
+  //positions
+  //LEFT MINUS RIGHT PLUS
+  //DOWN MINUS UP PLUS  
+  // x y
+  // so if + + heading 0-90
+  // if + - heading 90-180
+  // if - - heading -90 - (-180)
+  // if - + heading 0 - (-90)
+  float heading = 0;
+  float diffx = goalx - dronex;
+  float diffy = goaly - droney;
+  if (diffx > 0 && diffy > 0){
+    heading = atan(diffx / diffy);
+  } else if (diffx > 0 && diffy < 0){
+    heading =  90 + atan((-diffy) / diffx);
+  } else if (diffx < 0 && diffy < 0){
+    heading = -180 + atan((-diffx)/(-diffy));
+  } else if (diffx < 0 && diffy > 0){
+    heading = -90 + atan(diffy / (-diffx));
+  }
+  return heading;
+}
+
+// also look at guidance_pid.c
+// also i just realised that the two new functions are not fully compatible
+// either change first to only calc thewaypoint heading
+// or change the pid to take the diff directly instead of computing it
+float computePIDheading(float droneheading, float targetheading){
+  //error = difference in heading clockwise positive
+  float error = 0;
+
+  if (droneheading >= 0 && targetheading >= 0){
+    error = targetheading - droneheading;
+  } else if (droneheading >= 0 && targetheading <= 0){
+    error = (360 + targetheading) - droneheading;
+    if (error > 180){
+      error = 360 - error;
+    }
+  } else if (droneheading <= 0 && targetheading >= 0){
+      error = targetheading - droneheading;
+      if (error > 180){
+        error = error - 360;
+      }
+  } else if (droneheading <= 0 && targetheading <= 0){
+      error = targetheading - droneheading;
+  } else {
+    return 0.0;
+  }
+
+  // will tune the pid controller once waypoints are here
+  float KP_h = 1.0;     // Proportional gain
+  float KI_h = 0.1;     // Integral gain
+  float KD_h = 0.01;    // Derivative gain
+
+  static double integral = 0.0;
+  static double last_error = 0.0;
+
+  double P = KP_h * error;
+
+  integral += error;
+  double I = KI_h * integral;
+
+  double derivative = error - last_error;
+  double D = KD_h * derivative;
+
+  double output = P + I + D;
+
+  last_error = error;
+
+  // output should be the yaw rate
+  return output;
 }
