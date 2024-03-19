@@ -23,7 +23,7 @@
     <program name="Simulator" command="sw/simulator/pprzsim-launch"/>
     <program name="Joystick" command="sw/ground_segment/joystick/input2ivy">
       <arg flag="-ac" constant="@AIRCRAFT"/>
-      <arg flag="sm600.xml"/>
+      <arg flag="ps4_gamepad_yawontriggers.xml"/>
     </program>
     <program name="Environment Simulator" command="sw/simulator/gaia"/>
     <program name="NatNet3" command="sw/ground_segment/python/natnet3.x/natnet2ivy.py"/>
@@ -77,7 +77,7 @@
       </program>
       <program name="Joystick" command="sw/ground_segment/joystick/input2ivy">
         <arg flag="-ac" constant="@AIRCRAFT"/>
-        <arg flag="sm600.xml"/>
+        <arg flag="ps4_gamepad_yawontriggers.xml"/>
         <arg flag="-d 0"/>
       </program>
       <program name="Gazebo"/>
@@ -92,7 +92,7 @@
       </program>
       <program name="Joystick" command="sw/ground_segment/joystick/input2ivy">
         <arg flag="-ac" constant="@AIRCRAFT"/>
-        <arg flag="sm600.xml"/>
+        <arg flag="ps4_gamepad_yawontriggers.xml"/>
         <arg flag="-d 0"/>
       </program>
       <program name="NatNet3">

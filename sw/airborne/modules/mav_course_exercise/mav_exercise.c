@@ -49,6 +49,7 @@ int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that 
 float moveDistance = 2;                 // waypoint displacement [m]
 float oob_haeding_increment = 5.f;      // heading angle increment if out of bounds [deg]
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
+float heading_increment_obstcl_found = 20.f;    // heading angle increment if obstacle detected, so it turns when detecting [deg]
 
 
 // needed to receive output from a separate module running on a parallel process
@@ -108,7 +109,11 @@ void mav_exercise_periodic(void) {
       waypoint_move_here_2d(WP_GOAL);
       waypoint_move_here_2d(WP_TRAJECTORY);
 
-      navigation_state = HOLD;
+      increase_nav_heading(heading_increment_obstcl_found);
+      moveWaypointForward(WP_TRAJECTORY, 1.5f);
+      
+
+      //navigation_state = HOLD;
       break;
     case OUT_OF_BOUNDS:
       // stop
