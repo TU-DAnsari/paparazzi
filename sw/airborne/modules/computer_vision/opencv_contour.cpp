@@ -31,7 +31,10 @@
 
 #include "opencv_image_functions.h"
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 272ed1db8 (Edge detection)
 #include <iostream>
 
 using namespace cv;
@@ -90,6 +93,7 @@ void find_contour(char *img, int width, int height)
 
   //  Grayscale image example
   cvtColor(M, image, CV_YUV2GRAY_Y422);
+<<<<<<< HEAD
 
   //int edgeThresh = 35;
   //Canny(image, image, edgeThresh, edgeThresh * 3);
@@ -124,6 +128,13 @@ void find_contour(char *img, int width, int height)
 
   // Canny edges, only works with grayscale image
   
+=======
+  // Canny edges, only works with grayscale image
+  int edgeThresh = 35;
+  Canny(image, image, edgeThresh, edgeThresh * 3);
+  // Convert back to YUV422, and put it in place of the original image
+  grayscale_opencv_to_yuv422(image, img, width, height);
+>>>>>>> 272ed1db8 (Edge detection)
 
 
   // cout << "RUNNING FIND CONTOUR" << endl;
