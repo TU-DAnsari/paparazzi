@@ -26,7 +26,12 @@
 #include "opencv_contour.h"
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+#include <opencv2/imgcodecs.hpp>
+
 #include "opencv_image_functions.h"
+
+#include <iostream>
 
 using namespace cv;
 using namespace std;
@@ -78,100 +83,141 @@ void uyvy_opencv_to_yuv_opencv(Mat image, Mat image_in, int width, int height)
 
 void find_contour(char *img, int width, int height)
 {
-  // Create a new image, using the original bebop image.
-  Mat M(width, height, CV_8UC2, img); // original
-  Mat image, edge_image, thresh_image;
 
-  // convert UYVY in paparazzi to YUV in opencv
-  cvtColor(M, M, CV_YUV2RGB_Y422);
-  cvtColor(M, M, CV_RGB2YUV);
+  Mat M(height, width, CV_8UC2, img);
+  Mat image;
 
-  // Threshold all values within the indicted YUV values.
-  inRange(M, Scalar(cont_thres.lower_y, cont_thres.lower_u, cont_thres.lower_v), Scalar(cont_thres.upper_y,
-          cont_thres.upper_u, cont_thres.upper_v), thresh_image);
-
-  /// Find contours
-  vector<vector<Point> > contours;
-  vector<Vec4i> hierarchy;
-  edge_image = thresh_image;
+  //  Grayscale image example
+  cvtColor(M, image, CV_YUV2GRAY_Y422);
+  // Canny edges, only works with grayscale image
   int edgeThresh = 35;
-  Canny(edge_image, edge_image, edgeThresh, edgeThresh * 3);
-  findContours(edge_image, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
-
-  // Get the moments
-  vector<Moments> mu(contours.size());
-  for (unsigned int i = 0; i < contours.size(); i++) {
-    mu[i] = moments(contours[i], false);
-  }
-
-  //  Get the mass centers:
-  vector<Point2f> mc(contours.size());
-  for (unsigned int i = 0; i < contours.size(); i++) {
-    mc[i] = Point2f(mu[i].m10 / mu[i].m00 , mu[i].m01 / mu[i].m00);
-  }
-
-  /// Draw contours
-  Mat drawing = Mat::zeros(edge_image.size(), CV_8UC3);
-  for (unsigned int i = 0; i < contours.size(); i++) {
-    Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-    drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, Point());
-    circle(drawing, mc[i], 4, color, -1, 8, 0);
-  }
-
-  // Find Largest Contour
-  int largest_contour_index = 0;
-  int largest_area = 0;
-  Rect bounding_rect;
-
-  // iterate through each contour.
-  for (unsigned int i = 0; i < contours.size(); i++) {
-    //  Find the area of contour
-    double a = contourArea(contours[i], false);
-    if (a > largest_area) {
-      largest_area = a;
-      // Store the index of largest contour
-      largest_contour_index = i;
-      // Find the bounding rectangle for biggest contour
-      bounding_rect = boundingRect(contours[i]);
-    }
-  }
-  Scalar color(255, 255, 255);
-  // Draw the contour and rectangle
-  drawContours(M, contours, largest_contour_index, color, CV_FILLED, 8, hierarchy);
-
-  rectangle(M, bounding_rect,  Scalar(0, 255, 0), 2, 8, 0);
-
-  // some figure can cause there are no largest circles, in this case, do not draw circle
-  circle(M, mc[largest_contour_index], 4, Scalar(0, 255, 0), -1, 8, 0);
-  Point2f rect_center(bounding_rect.x + bounding_rect.width / 2 , bounding_rect.y + bounding_rect.height / 2);
-  circle(image, rect_center, 4, Scalar(0, 0, 255), -1, 8, 0);
-
+  Canny(image, image, edgeThresh, edgeThresh * 3);
   // Convert back to YUV422, and put it in place of the original image
-  grayscale_opencv_to_yuv422(M, img, width, height);
-  float contour_distance_est;
-  //estimate the distance in X, Y and Z direction
-  float area = bounding_rect.width * bounding_rect.height;
-  if (area > 28000.) {
-    contour_distance_est = 0.1;
-  }
-  if ((area > 16000.) && (area < 28000.)) {
-    contour_distance_est = 0.5;
-  }
-  if ((area > 11000.) && (area < 16000.)) {
-    contour_distance_est = 1;
-  }
-  if ((area > 3000.) && (area < 11000.)) {
-    contour_distance_est = 1.5;
-  }
-  if (area < 3000.) {
-    contour_distance_est = 2.0;
-  }
-  cont_est.contour_d_x = contour_distance_est;
-  float Im_center_w = width / 2.;
-  float Im_center_h = height / 2.;
-  float real_size = 1.; // real size of the object
-  cont_est.contour_d_y = -(rect_center.x - Im_center_w) * real_size / float(bounding_rect.width); // right hand
-  cont_est.contour_d_z = -(rect_center.y - Im_center_h) * real_size / float(bounding_rect.height); // point downwards
+  grayscale_opencv_to_yuv422(image, img, width, height);
+
+
+  // cout << "RUNNING FIND CONTOUR" << endl;
+
+  // cout << "Image of w: " << width << " h: " << height << endl;
+
+  // // Create a new image, using the original bebop image.
+  // Mat M(width, height, CV_8UC2, img); // original
+  // Mat image, edge_image, thresh_image;
+
+  // // convert UYVY in paparazzi to YUV in opencv
+  // // if (!imwrite("yuv.png", M)) {
+  // //     cout << "Failed to save the image" << endl;
+  // // }
+  // cvtColor(M, M, CV_YUV2RGB_Y422);
+  // if (!imwrite("rgb.png", M)) {
+  //     cout << "Failed to save the image" << endl;
+  // }
+  // cvtColor(M, M, CV_RGB2YUV);
+
+  // if (!imwrite("inputyuvagain.png", M)) {
+  //     cout << "Failed to save the image" << endl;
+  // }
+
+  // // Threshold all values within the indicted YUV values.
+  // inRange(M, Scalar(cont_thres.lower_y, cont_thres.lower_u, cont_thres.lower_v), Scalar(cont_thres.upper_y,
+  //         cont_thres.upper_u, cont_thres.upper_v), thresh_image);
+
+  // /// Find contours
+  // vector<vector<Point> > contours;
+  // vector<Vec4i> hierarchy;
+  // edge_image = thresh_image;
+  // int edgeThresh = 35;
+  // Canny(edge_image, edge_image, edgeThresh, edgeThresh * 3);
+  // findContours(edge_image, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+
+  // cout << "Contours found: " << contours.size() << endl;
+
+  // // Get the moments
+  // vector<Moments> mu(contours.size());
+  // for (unsigned int i = 0; i < contours.size(); i++) {
+  //   mu[i] = moments(contours[i], false);
+  // }
+
+  // //  Get the mass centers:
+  // vector<Point2f> mc(contours.size());
+  // for (unsigned int i = 0; i < contours.size(); i++) {
+  //   mc[i] = Point2f(mu[i].m10 / mu[i].m00 , mu[i].m01 / mu[i].m00);
+  // }
+  
+  // if (contours.size() > 0){
+  //   /// Draw contours
+  //   Mat drawing = Mat::zeros(edge_image.size(), CV_8UC3);
+  //   for (unsigned int i = 0; i < contours.size(); i++) {
+  //     Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+  //     drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, Point());
+  //     circle(drawing, mc[i], 4, color, -1, 8, 0);
+  //   }
+
+  //   // Find Largest Contour
+  //   int largest_contour_index = 0;
+  //   int largest_area = 0;
+  //   Rect bounding_rect;
+
+  //   // iterate through each contour.
+  //   for (unsigned int i = 0; i < contours.size(); i++) {
+  //     //  Find the area of contour
+  //     double a = contourArea(contours[i], false);
+  //     if (a > largest_area) {
+  //       largest_area = a;
+  //       // Store the index of largest contour
+  //       largest_contour_index = i;
+  //       // Find the bounding rectangle for biggest contour
+  //       bounding_rect = boundingRect(contours[i]);
+  //     }
+  //   }
+  //   Scalar color(255, 255, 255);
+  //   // Draw the contour and rectangle
+  //   drawContours(M, contours, largest_contour_index, color, CV_FILLED, 8, hierarchy);
+
+  //   rectangle(M, bounding_rect,  Scalar(0, 255, 0), 2, 8, 0);
+
+  //   // some figure can cause there are no largest circles, in this case, do not draw circle
+  //   circle(M, mc[largest_contour_index], 4, Scalar(0, 255, 0), -1, 8, 0);
+  //   Point2f rect_center(bounding_rect.x + bounding_rect.width / 2 , bounding_rect.y + bounding_rect.height / 2);
+  //   circle(image, rect_center, 4, Scalar(0, 0, 255), -1, 8, 0);
+    
+  //   cout << M.channels() << endl;
+  //   //cout << img.channels() << endl;
+
+  //   // Convert back to YUV422, and put it in place of the original image
+    
+  //   float contour_distance_est;
+  //   //estimate the distance in X, Y and Z direction
+  //   float area = bounding_rect.width * bounding_rect.height;
+  //   if (area > 28000.) {
+  //     contour_distance_est = 0.1;
+  //   }
+  //   if ((area > 16000.) && (area < 28000.)) {
+  //     contour_distance_est = 0.5;
+  //   }
+  //   if ((area > 11000.) && (area < 16000.)) {
+  //     contour_distance_est = 1;
+  //   }
+  //   if ((area > 3000.) && (area < 11000.)) {
+  //     contour_distance_est = 1.5;
+  //   }
+  //   if (area < 3000.) {
+  //     contour_distance_est = 2.0;
+  //   }
+  //   cont_est.contour_d_x = contour_distance_est;
+  //   float Im_center_w = width / 2.;
+  //   float Im_center_h = height / 2.;
+  //   float real_size = 1.; // real size of the object
+  //   cont_est.contour_d_y = -(rect_center.x - Im_center_w) * real_size / float(bounding_rect.width); // right hand
+  //   cont_est.contour_d_z = -(rect_center.y - Im_center_h) * real_size / float(bounding_rect.height); // point downwards
+  // }
+
+  // if (!imwrite("output.png", M)) {
+  //     cout << "Failed to save the image" << endl;
+  // }
+
+  // coloryuv_opencv_to_yuv422(M, img, width, height);
+  // cout << "contour done" << endl;
 }
 
 
