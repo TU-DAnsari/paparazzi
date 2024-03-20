@@ -85,13 +85,29 @@ void find_contour(char *img, int width, int height)
 {
 
   Mat M(height, width, CV_8UC2, img);
-  Mat image;
+  Mat image, image_rotated, image_resized;
 
   //  Grayscale image example
   cvtColor(M, image, CV_YUV2GRAY_Y422);
+
+  rotate(image, image_rotated, cv::ROTATE_90_COUNTERCLOCKWISE);
+
+  resize(image_rotated, image_resized, Size(), 0.25, 0.25);
+
+  GaussianBlur(image_resized, image_resized, Size(3,3), 0);
+  
+  //Sobel(image_resized, image_resized, CV_64F, 1, 1, 5);
+
   // Canny edges, only works with grayscale image
   int edgeThresh = 35;
-  Canny(image, image, edgeThresh, edgeThresh * 3);
+  Canny(image_resized, image_resized, edgeThresh, edgeThresh * 3);
+
+  if (!imwrite("/tmp/paparazzi/images/canny.png", image_resized)) {
+      cout << "Failed to save the image" << endl;
+  }
+
+
+
   // Convert back to YUV422, and put it in place of the original image
   grayscale_opencv_to_yuv422(image, img, width, height);
 

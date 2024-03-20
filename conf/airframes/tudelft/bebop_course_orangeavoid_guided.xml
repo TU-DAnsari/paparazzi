@@ -66,10 +66,12 @@
     <module name="logger_file"/>
 
     <!-- Video/Camera modules -->
-    <module name="bebop_cam"/>
-    <!--module name="bebop_ae_awb">
-      <define name="CV_AE_AWB_VERBOSE" value="0" />
-    </module-->
+    <module name="bebop_cam">
+      <!-- IMPORTANT to limit these or FPS drops significantly -->
+      <define name="MT9F002_TARGET_FPS" value="30"/> <!-- Front cam -->
+      <define name="MT9V117_TARGET_FPS" value="30"/> <!-- Bottom cam -->
+    </module>
+    
     <module name="video_capture">
       <define name="VIDEO_CAPTURE_CAMERA" value="front_camera"/>
       <define name="VIDEO_CAPTURE_FPS" value="10"/>
