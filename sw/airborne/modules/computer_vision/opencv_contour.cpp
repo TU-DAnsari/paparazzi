@@ -102,14 +102,14 @@ void find_contour(char *img, int width, int height)
   int edgeThresh = 35;
   Canny(image_resized, image_resized, edgeThresh, edgeThresh * 3);
 
-  if (!imwrite("/tmp/paparazzi/images/canny.png", image_resized)) {
-      cout << "Failed to save the image" << endl;
-  }
+  // if (!imwrite("/tmp/paparazzi/images/canny.png", image_resized)) {
+  //     cout << "Failed to save the image" << endl;
+  // }
 
 
 
   // Convert back to YUV422, and put it in place of the original image
-  grayscale_opencv_to_yuv422(image, img, width, height);
+  //grayscale_opencv_to_yuv422(image, img, width, height);
 
 
   // cout << "RUNNING FIND CONTOUR" << endl;

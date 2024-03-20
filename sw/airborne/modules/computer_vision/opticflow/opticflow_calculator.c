@@ -483,6 +483,18 @@ void opticflow_calc_init(struct opticflow_t opticflow[])
   float_rmat_of_eulers(&body_to_cam[1], &euler_cam2);
 #endif
 }
+
+
+#define MIN(A,B)    ({ __typeof__(A) __a = (A); __typeof__(B) __b = (B); __a < __b ? __a : __b; })
+#define MAX(A,B)    ({ __typeof__(A) __a = (A); __typeof__(B) __b = (B); __a < __b ? __b : __a; })
+
+#define CLAMP(x, low, high) ({\
+  __typeof__(x) __x = (x); \
+  __typeof__(low) __low = (low);\
+  __typeof__(high) __high = (high);\
+  __x > __high ? __high : (__x < __low ? __low : __x);\
+  })
+
 /**
  * Run the optical flow with fast9 and lukaskanade on a new image frame
  * @param[in] *opticflow The opticalflow structure that keeps track of previous images
@@ -654,11 +666,59 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
 
     free(back_vectors);
   }
+  uint8_t color[4] = {0, 127, 0, 127};
+  uint8_t bad_color[4] = {127, 255, 127, 255};
 
   if (opticflow->show_flow) {
-    uint8_t color[4] = {0, 0, 0, 0};
-    uint8_t bad_color[4] = {0, 0, 0, 0};
+    printf("Showing flow");
     image_show_flow_color(img, vectors, result->tracked_cnt, opticflow->subpixel_factor, color, bad_color);
+  }
+
+  int16_t total_left = 0;
+  int16_t num_left = 0;
+  int16_t total_right = 0;
+  int16_t num_right = 0;
+
+  for (int i = 0; i < result->tracked_cnt; i++) {
+    // subtract the flow:
+    // printf("%d| pointx :%d, pointy :%d\n", i, vectors[i].pos.x / opticflow->subpixel_factor, vectors[i].pos.y / opticflow->subpixel_factor);
+    // printf("%d| flowy :%d\n", i, vectors[i].flow_y);
+    if (vectors[i].pos.y / opticflow->subpixel_factor <= 200){
+      total_left += vectors[i].flow_y;
+      num_left += 1;
+    }
+    else if (vectors[i].pos.y / opticflow->subpixel_factor >= 320) {
+      total_right += vectors[i].flow_y;
+      num_right += 1;
+    }
+
+    // vectors[i].flow_x
+    // vectors[i].flow_y -= predicted_flow_vectors[i].flow_y;
+  } 
+
+  if (num_left > 0){
+    printf("average flowleft :%d\n", total_left/num_left);
+    uint16_t size_crosshair_left = CLAMP(abs(total_left/num_left), 1, 40);
+
+    struct point_t poi = {
+      .x = 50,
+      .y = 50
+    };
+
+    image_draw_crosshair(img, &poi, color, size_crosshair_left);
+
+  }
+    
+  if (num_right > 0){
+    printf("average flowright :%d\n", total_right/num_right);
+    uint16_t size_crosshair_right = CLAMP(abs(total_right/num_right), 1, 40);
+  
+    struct point_t poi2 = {
+        .x = 50,
+        .y = 300
+      };
+
+    image_draw_crosshair(img, &poi2, color, size_crosshair_right);
   }
 
   static int n_samples = 100;
