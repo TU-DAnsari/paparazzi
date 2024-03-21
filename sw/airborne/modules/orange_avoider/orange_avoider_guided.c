@@ -163,33 +163,27 @@ void orange_avoider_guided_periodic(void)
   VERBOSE_PRINT("current position LEFT RIGHT: %f\n", newx); //LEFT MINUS RIGHT PLUS
   VERBOSE_PRINT("current position UP DOWN ENU: %f\n", newy); //DOWN MINUS UP PLUS  
 
-  // SOMETHING IS WRONG WITH THE POS VALIES THEY JUST DONT MAKE SENSE
   float heading = stateGetNedToBodyEulers_f()->psi;
   FLOAT_ANGLE_NORMALIZE(heading);
-  float heading_deg = DegOfRad(heading) - anglewrtEnu; //+25 since north is at an angle with cyberzoo
+  float heading_deg = DegOfRad(heading) - anglewrtEnu;
   VERBOSE_PRINT("heading normalized? angle: %f\n", heading_deg);
   // zero up %%% 180 down %%% positive right %%% negative left
-
-  // have a look at the angles they seem off by about 20 deg
-  // the positions seem off as well
-  // have the headng impact how much we turn when we come to an edge
-
   // heading pass trough true - to make sure we use optitrack
 
   switch (navigation_state){
     case SAFE:
       //make sure that the priority is good, might wanna change it a bit
-      if (fabsf(newx) > 3 || fabsf(newy) > 3){
-        if(newy >= 3 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
+      if (fabsf(newx) > 3.2 || fabsf(newy) > 3.2){
+        if(newy >= 3.2 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
           //top side
           navigation_state = OUT_OF_BOUNDS;
-        } else if(newy <= -3 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
+        } else if(newy <= -3.2 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
           //bottom side 
           navigation_state = OUT_OF_BOUNDS;
-        } else if(newx <= -3 && -180 <= heading_deg && heading_deg <= 0){
+        } else if(newx <= -3.2 && -180 <= heading_deg && heading_deg <= 0){
           //left side
           navigation_state = OUT_OF_BOUNDS;
-        } else if(newx >= 3 && 0 <= heading_deg && heading_deg <= 180){
+        } else if(newx >= 3.2 && 0 <= heading_deg && heading_deg <= 180){
           //right side
           navigation_state = OUT_OF_BOUNDS;
         } else{
@@ -235,10 +229,9 @@ void orange_avoider_guided_periodic(void)
       break;
     case OBSTACLE_FOUND:
       // stop
-      guidance_h_set_body_vel(0, 0);
+      guidance_h_set_body_vel(-0.5 * speed_sp, 0);
 
       // randomly select new search direction
-      // later will use the ref heading
       chooseRandomIncrementAvoidance();
 
       navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -246,7 +239,8 @@ void orange_avoider_guided_periodic(void)
       break;
     case SEARCH_FOR_SAFE_HEADING:
       guidance_h_set_heading_rate(avoidance_heading_direction * oag_heading_rate);
-
+      float heading = CalcDifferenceInHeading(newx, newy, 0, 0);
+      float heading_rate = computePIDheading(heading_deg, heading);
       // make sure we have a couple of good readings before declaring the way safe
       if (obstacle_free_confidence >= 3){
         guidance_h_set_heading(stateGetNedToBodyEulers_f()->psi);
@@ -283,12 +277,12 @@ void orange_avoider_guided_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 0 && heading_deg <=90){
         //turn right
-        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * speed_sp, 0.4 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(90));
         navigation_state = SAFE;
       } else if (heading_deg <= 0 && heading_deg >= -90){
         //turn left
-        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * speed_sp, -0.4 * speed_sp);
         guidance_h_set_heading_rate(-1.0 * RadOfDeg(90));
         navigation_state = SAFE;
       } else{
@@ -302,12 +296,12 @@ void orange_avoider_guided_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 90 && heading_deg <=180){
         //turn right
-        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * speed_sp, 0.4 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(90));
         navigation_state = SAFE;
       } else if (heading_deg <= 90 && heading_deg >= 0){
         //turn left
-        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * speed_sp, -0.4 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
         navigation_state = SAFE;
       } else{
@@ -321,12 +315,12 @@ void orange_avoider_guided_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -180 && heading_deg <=-90){
         //turn right
-        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * speed_sp, 0.4 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(90));
         navigation_state = SAFE;
       } else if (heading_deg <= 180 && heading_deg >= 90){
         //turn left
-        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * speed_sp, -0.4 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
         navigation_state = SAFE;
       } else{
@@ -340,12 +334,12 @@ void orange_avoider_guided_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -90 && heading_deg <=0){
         //turn right
-        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * speed_sp, 0.4 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(90));
         navigation_state = SAFE;
       } else if (heading_deg <= -90 && heading_deg >= -180){
         //turn left
-        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * speed_sp, -0.4 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
         navigation_state = SAFE;
       } else{
@@ -407,9 +401,6 @@ float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goa
 }
 
 // also look at guidance_pid.c
-// also i just realised that the two new functions are not fully compatible
-// either change first to only calc thewaypoint heading
-// or change the pid to take the diff directly instead of computing it
 float computePIDheading(float droneheading, float targetheading){
   //error = difference in heading clockwise positive
   float error = 0;
@@ -455,4 +446,5 @@ float computePIDheading(float droneheading, float targetheading){
   // output should be the yaw rate
   return output;
 }
+
 
