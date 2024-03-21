@@ -1,0 +1,18 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+
+<module name="probability_map">
+  <doc>
+    <description>
+      This module is a module that makes a probability map for the cyberzoo. In this probability map, the map remembers where there is a high chance of meeting an obstacle and where there is a low chance of meeting an obstacle.
+    </description>
+  </doc>
+  <header>
+    <file name="probability_map.h"/>
+  </header>
+  <init fun="probability_map_init()"/>
+  <periodic fun="probability_map_update()" freq="4"/>
+  <makefile target="ap|nps">
+    <file name="probability_map.c"/>
+  </makefile>
+</module>
