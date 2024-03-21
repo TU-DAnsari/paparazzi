@@ -154,13 +154,19 @@ void orange_avoider_guided_periodic(void)
 
   float speed_sp = fminf(oag_max_speed, 0.2f * obstacle_free_confidence);
   
-  VERBOSE_PRINT("current position LEFT RIGHT: %f\n", stateGetPositionEnu_f() ->x); //LEFT MINUS RIGHT PLUS
-  VERBOSE_PRINT("current position UP DOWN ENU: %f\n", stateGetPositionEnu_f() ->y); //DOWN MINUS UP PLUS  
+  //VERBOSE_PRINT("current position LEFT RIGHT: %f\n", stateGetPositionEnu_f() ->x); //LEFT MINUS RIGHT PLUS
+  //VERBOSE_PRINT("current position UP DOWN ENU: %f\n", stateGetPositionEnu_f() ->y); //DOWN MINUS UP PLUS  
+  float anglewrtEnu = -20;
+  float newx = +cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x - sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
+  float newy = sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x + cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
+
+  VERBOSE_PRINT("current position LEFT RIGHT: %f\n", newx); //LEFT MINUS RIGHT PLUS
+  VERBOSE_PRINT("current position UP DOWN ENU: %f\n", newy); //DOWN MINUS UP PLUS  
 
   // SOMETHING IS WRONG WITH THE POS VALIES THEY JUST DONT MAKE SENSE
   float heading = stateGetNedToBodyEulers_f()->psi;
   FLOAT_ANGLE_NORMALIZE(heading);
-  float heading_deg = DegOfRad(heading) + 25; //+25 since north is at an angle with cyberzoo
+  float heading_deg = DegOfRad(heading) - anglewrtEnu; //+25 since north is at an angle with cyberzoo
   VERBOSE_PRINT("heading normalized? angle: %f\n", heading_deg);
   // zero up %%% 180 down %%% positive right %%% negative left
 
@@ -173,17 +179,17 @@ void orange_avoider_guided_periodic(void)
   switch (navigation_state){
     case SAFE:
       //make sure that the priority is good, might wanna change it a bit
-      if (fabsf(stateGetPositionEnu_f() ->x) > 3.5 || fabsf(stateGetPositionEnu_f() ->y) > 3.5){
-        if(stateGetPositionEnu_f() ->y >= 3.5 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
+      if (fabsf(newx) > 3 || fabsf(newy) > 3){
+        if(newy >= 3 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
           //top side
           navigation_state = OUT_OF_BOUNDS;
-        } else if(stateGetPositionEnu_f() ->y <= -3.5 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
+        } else if(newy <= -3 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
           //bottom side 
           navigation_state = OUT_OF_BOUNDS;
-        } else if(stateGetPositionEnu_f() ->x <= -3.5 && -180 <= heading_deg && heading_deg <= 0){
+        } else if(newx <= -3 && -180 <= heading_deg && heading_deg <= 0){
           //left side
           navigation_state = OUT_OF_BOUNDS;
-        } else if(stateGetPositionEnu_f() ->x >= 3.5 && 0 <= heading_deg && heading_deg <= 180){
+        } else if(newx >= 3 && 0 <= heading_deg && heading_deg <= 180){
           //right side
           navigation_state = OUT_OF_BOUNDS;
         } else{
@@ -194,16 +200,16 @@ void orange_avoider_guided_periodic(void)
         navigation_state = CLOSE_TO_OBSTICLE;
       } else if (obstacle_free_confidence == 0){
         navigation_state = OBSTACLE_FOUND;
-      } else if (stateGetPositionEnu_f() ->y >= 2.5){
+      } else if (newy >= 2.5 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
         // close to edge
         navigation_state = TOP_LINE;
-      } else if (stateGetPositionEnu_f() ->x >= 2.5){
+      } else if (newx >= 2.5 && 0 <= heading_deg && heading_deg <= 180){
         // close to edge
         navigation_state = RIGHT_LINE;
-      } else if (stateGetPositionEnu_f() ->y <= -2.5){
+      } else if (newy <= -2.5 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
         // close to edge
         navigation_state = BOTTOM_LINE;
-      } else if (stateGetPositionEnu_f() ->x <= -2.5){
+      } else if (newx <= -2.5 && -180 <= heading_deg && heading_deg <= 0){
         // close to edge
         navigation_state = LEFT_LINE;
       } else {
@@ -273,16 +279,18 @@ void orange_avoider_guided_periodic(void)
       }
       break;
     case TOP_LINE:
-      if(stateGetPositionEnu_f() ->y >= 3.5 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
+      if(newy >= 3 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 0 && heading_deg <=90){
         //turn right
         guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(90));
+        navigation_state = SAFE;
       } else if (heading_deg <= 0 && heading_deg >= -90){
         //turn left
         guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
         guidance_h_set_heading_rate(-1.0 * RadOfDeg(90));
+        navigation_state = SAFE;
       } else{
         guidance_h_set_body_vel(speed_sp, 0);
         guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
@@ -290,16 +298,18 @@ void orange_avoider_guided_periodic(void)
       }
       break;
     case RIGHT_LINE:
-      if(stateGetPositionEnu_f() ->x >= 3.5 && 0 <= heading_deg && heading_deg <= 180){
+      if(newx >= 3 && 0 <= heading_deg && heading_deg <= 180){
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 90 && heading_deg <=180){
         //turn right
         guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(90));
+        navigation_state = SAFE;
       } else if (heading_deg <= 90 && heading_deg >= 0){
         //turn left
         guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
+        navigation_state = SAFE;
       } else{
         guidance_h_set_body_vel(speed_sp, 0);
         guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
@@ -307,16 +317,18 @@ void orange_avoider_guided_periodic(void)
       }
       break;
     case BOTTOM_LINE:
-      if(stateGetPositionEnu_f() ->y <= -3.5 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
+      if(newy <= -3 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -180 && heading_deg <=-90){
         //turn right
         guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(90));
+        navigation_state = SAFE;
       } else if (heading_deg <= 180 && heading_deg >= 90){
         //turn left
         guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
+        navigation_state = SAFE;
       } else{
         guidance_h_set_body_vel(speed_sp, 0);
         guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
@@ -324,16 +336,18 @@ void orange_avoider_guided_periodic(void)
       }
       break;
     case LEFT_LINE:
-      if(stateGetPositionEnu_f() ->x <= -3.5 && -180 <= heading_deg && heading_deg <= 0){
+      if(newx <= -3 && -180 <= heading_deg && heading_deg <= 0){
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -90 && heading_deg <=0){
         //turn right
         guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(90));
+        navigation_state = SAFE;
       } else if (heading_deg <= -90 && heading_deg >= -180){
         //turn left
         guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
         guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
+        navigation_state = SAFE;
       } else{
         guidance_h_set_body_vel(speed_sp, 0);
         guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
@@ -441,3 +455,4 @@ float computePIDheading(float droneheading, float targetheading){
   // output should be the yaw rate
   return output;
 }
+
