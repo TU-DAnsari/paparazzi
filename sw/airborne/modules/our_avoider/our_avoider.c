@@ -123,28 +123,30 @@ void our_avoider_periodic(void)
 
   int32_t floor_count_threshold = floor_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  VERBOSE_PRINT("a: %d, b: %d, c: %d, d: %d \n", color_count_a, color_count_b, color_count_c, color_count_d);
-  VERBOSE_PRINT("threshold: %d \n", floor_count_threshold);
-  VERBOSE_PRINT("green total: %d \n", floor_count);
 
-  VERBOSE_PRINT("State: %d", navigation_state);
+
 
   float speed_sp = forward_velocity;
   
-  //VERBOSE_PRINT("current position LEFT RIGHT: %f\n", stateGetPositionEnu_f() ->x); //LEFT MINUS RIGHT PLUS
-  //VERBOSE_PRINT("current position UP DOWN ENU: %f\n", stateGetPositionEnu_f() ->y); //DOWN MINUS UP PLUS  
   float anglewrtEnu = -20;
   float newx = +cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x - sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
   float newy = sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x + cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
 
+
+  VERBOSE_PRINT("State: %d\n", navigation_state);
   VERBOSE_PRINT("current position LEFT RIGHT: %f\n", newx); //LEFT MINUS RIGHT PLUS
   VERBOSE_PRINT("current position UP DOWN ENU: %f\n", newy); //DOWN MINUS UP PLUS  
+  
 
   // SOMETHING IS WRONG WITH THE POS VALIES THEY JUST DONT MAKE SENSE
   float heading = stateGetNedToBodyEulers_f()->psi;
   FLOAT_ANGLE_NORMALIZE(heading);
-  float heading_deg = DegOfRad(heading) - anglewrtEnu; //+25 since north is at an angle with cyberzoo
-  VERBOSE_PRINT("heading normalized? angle: %f\n", heading_deg);
+  float heading_deg = DegOfRad(heading) - anglewrtEnu;
+  FLOAT_ANGLE_NORMALIZE(heading_deg);
+  VERBOSE_PRINT("heading normalized angle: %f\n", heading_deg);
+  float headingReq = CalcDifferenceInHeading(newx, newy, 0, 0);
+  float heading_rate = computePIDheading(heading_deg, headingReq);
+  VERBOSE_PRINT("Heading REQ: %f heading diff: %f heading rate: %f\n", headingReq, headingReq-heading_deg, heading_rate);
 
   // zero up %%% 180 down %%% positive right %%% negative left
 
@@ -155,29 +157,26 @@ void our_avoider_periodic(void)
   // heading pass trough true - to make sure we use optitrack
 
 
-  float headingDiff = 0.f;
   switch (navigation_state){
     case SAFE:
       //make sure that the priority is good, might wanna change it a bit
-      if (fabsf(newx) > 3 || fabsf(newy) > 3){
-        if(newy >= 3 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))) {
+      if (fabsf(newx) > 3.2 || fabsf(newy) > 3.2){
+        if(newy >= 3.2 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))) {
           //top side
           navigation_state = OUT_OF_BOUNDS;
-        } else if(newy <= -3 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))) {
+        } else if(newy <= -3.2 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))) {
           //bottom side 
           navigation_state = OUT_OF_BOUNDS;
-        } else if(newx <= -3 && -180 <= heading_deg && heading_deg <= 0) {
+        } else if(newx <= -3.2 && -180 <= heading_deg && heading_deg <= 0) {
           //left side
           navigation_state = OUT_OF_BOUNDS;
-        } else if(newx >= 3 && 0 <= heading_deg && heading_deg <= 180) {
+        } else if(newx >= 3.2 && 0 <= heading_deg && heading_deg <= 180) {
           //right side
           navigation_state = OUT_OF_BOUNDS;
         } else {
           guidance_h_set_body_vel(speed_sp, 0);
           guidance_h_set_heading_rate(RadOfDeg(0));
         }
-      // } else if (obstacle_free_confidence == 0){
-      //   navigation_state = OBSTACLE_FOUND;
       } else if (newy >= 2.5 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
         // close to edge
         navigation_state = TOP_LINE;
@@ -223,10 +222,12 @@ void our_avoider_periodic(void)
       break;
 
     case SEARCH_FOR_SAFE_HEADING:
-      headingDiff = CalcDifferenceInHeading(newx, newy, 0, 0);
-      float heading_rate = computePIDheading(heading_deg, heading);
-      guidance_h_set_heading_rate(heading_rate);
-      if(headingDiff < 10) {
+      headingReq = CalcDifferenceInHeading(newx, newy, 0, 0);
+      float heading_rate = computePIDheading(heading_deg, headingReq);
+      VERBOSE_PRINT("heading_rate: %f", heading_rate);
+      //guidance_h_set_heading_rate(heading_rate);
+      guidance_h_set_heading_rate(25);
+      if(fabs(headingReq -heading_deg) < 10) {
         navigation_state = SAFE;
       }
       break;
@@ -334,18 +335,32 @@ float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goa
   // if + - heading 90-180
   // if - - heading -90 - (-180)
   // if - + heading 0 - (-90)
+  // float diffx = goalx - dronex;
+  // float diffy = goaly - droney;
+  // if (diffx > 0 && diffy > 0){
+  //   heading = DegOfRad(atan(diffx / diffy));
+  // } else if (diffx > 0 && diffy < 0){
+  //   heading =  90 + DegOfRad(atan((-diffy) / diffx));
+  // } else if (diffx < 0 && diffy < 0){
+  //   heading = -180 + DegOfRad(atan((-diffx)/(-diffy)));
+  // } else if (diffx < 0 && diffy > 0){
+  //   heading = -90 + DegOfRad(atan(diffy / (-diffx)));
+  // }
   float heading = 0;
-  float diffx = goalx - dronex;
-  float diffy = goaly - droney;
-  if (diffx > 0 && diffy > 0){
-    heading = atan(diffx / diffy);
-  } else if (diffx > 0 && diffy < 0){
-    heading =  90 + atan((-diffy) / diffx);
-  } else if (diffx < 0 && diffy < 0){
-    heading = -180 + atan((-diffx)/(-diffy));
-  } else if (diffx < 0 && diffy > 0){
-    heading = -90 + atan(diffy / (-diffx));
+  float dx = goalx - dronex;
+  float dy = goaly - droney;
+  heading = atan2(dy, dx);
+    
+  // Convert heading from radians to degrees
+  heading = DegOfRad(heading);
+    
+  // Normalize heading to be within [-180, 180) degrees
+  if (heading < -180.0) {
+      heading += 360.0;
+  } else if (heading >= 180.0) {
+      heading -= 360.0;
   }
+    
   return heading;
 }
 
@@ -357,7 +372,6 @@ float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goa
 float computePIDheading(float droneheading, float targetheading) {
   //error = difference in heading clockwise positive
   float error = 0;
-
   if (droneheading >= 0 && targetheading >= 0){
     error = targetheading - droneheading;
   } else if (droneheading >= 0 && targetheading <= 0){
@@ -376,10 +390,12 @@ float computePIDheading(float droneheading, float targetheading) {
     return 0.0;
   }
 
+  //VERBOSE_PRINT("IN THE FUNC droneheading: %f targetheading: %f\n", droneheading, targetheading);
+
   // will tune the pid controller once waypoints are here
   float KP_h = 1.0;     // Proportional gain
-  float KI_h = 0.1;     // Integral gain
-  float KD_h = 0.01;    // Derivative gain
+  float KI_h = 0.0;     // Integral gain
+  float KD_h = 0.0;    // Derivative gain
 
   static double integral = 0.0;
   static double last_error = 0.0;
@@ -395,7 +411,6 @@ float computePIDheading(float droneheading, float targetheading) {
   double output = P + I + D;
 
   last_error = error;
-
   // output should be the yaw rate
   return output;
 }
