@@ -91,47 +91,36 @@ void find_contour(char *img, int width, int height)
   //  Grayscale image example
   cvtColor(M, image, CV_YUV2GRAY_Y422);
 
-  int edgeThresh = 35;
-  Canny(image, image, edgeThresh, edgeThresh * 3);
+  //int edgeThresh = 35;
+  //Canny(image, image, edgeThresh, edgeThresh * 3);
 
   // Convert back to YUV422, and put it in place of the original image
 
 
-  grayscale_opencv_to_yuv422(image, img, width, height);
+  //grayscale_opencv_to_yuv422(image, img, width, height);
 
 
   //rotate(image, image_rotated, cv::ROTATE_90_COUNTERCLOCKWISE)
   //Create Gaussian Pyramids
-  //vector<Mat> pyramid;
-  //pyramid.push_back(image);
-  //for (int i = 0; i < 3; ++i) {  // Number of pyramid levels (adjust as needed)
-  //      Mat down;
-  //      pyrDown(pyramid[i], down);
-  //      pyramid.push_back(down);
-  //}
+  vector<Mat> pyramid;
+  pyramid.push_back(image);
+  for (int i = 0; i < 3; ++i) {  // Number of pyramid levels (adjust as needed)
+        Mat down;
+        pyrDown(pyramid[i], down);
+        pyramid.push_back(down);
+  }
   
-  //Mat edges;
-  //Canny(pyramid[1], edges, 100, 200);
+  Mat edges;
+  Canny(pyramid[1], edges, 100, 200);
 
   //Mat upsampled;
-  //pyrUp(edges, edges, pyramid[0].size());
+  pyrUp(edges, edges, pyramid[0].size());
 
-  //vector<vector<Point>> contours;
-  //findContours(edges, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+  vector<vector<Point>> contours;
+  findContours(edges, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
-  //Mat frame(height, width, CV_8UC3, img);
-  //drawContours(frame, contours, -1, Scalar(0, 255, 0), FILLED);
-
-  //Mat contour_image = Mat::zeros(image.size(), CV_8UC1); // Create an empty grescaleimage
-  //drawContours(contour_image, contours, -1, Scalar(255, 255, 255), FILLED);
-
-  //int contour_width = contour_image.cols;
-  //int contour_height = contour_image.rows;
-
-  //unsigned char *yuv_img = new unsigned char[contour_width * contour_height * 2]; // Assuming YUV422 format requires 2 bytes per pixel
-  //grayscale_opencv_to_yuv422(contour_image, reinterpret_cast<char*>(yuv_img), contour_width, contour_height);
-
-  //delete[] yuv_img;
+  Mat frame(height, width, CV_8UC1, img);
+  drawContours(frame, contours, -1, Scalar(0, 255, 0), FILLED);
 
   // Canny edges, only works with grayscale image
   
