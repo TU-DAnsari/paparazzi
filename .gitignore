@@ -204,3 +204,5 @@ tests/results/*
 
 # K-develop
 *.kate-swp
+
+.vscode/
