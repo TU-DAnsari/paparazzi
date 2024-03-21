@@ -63,6 +63,7 @@ enum navigation_state_t {
   LEFT_LINE
 };
 
+
 // define settings
 float oag_color_count_frac = 0.18f;       // obstacle detection threshold as a fraction of total of image
 float oag_floor_count_frac = 0.05f;       // floor detection threshold as a fraction of total of image
