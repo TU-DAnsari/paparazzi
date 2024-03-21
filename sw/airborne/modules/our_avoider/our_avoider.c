@@ -28,6 +28,7 @@
 
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
+#include "../../boards/ardrone2.h"
 
 #define ORANGE_AVOIDER_VERBOSE TRUE
 
@@ -40,28 +41,31 @@
 
 enum navigation_state_t {
   SAFE,
-  OBSTACLE_FOUND,
-  SEARCH_FOR_SAFE_HEADING,
-  OUT_OF_BOUNDS
+  OUT_OF_BOUNDS,
+  TURNING
 };
 
-// define settings
-float forward_velocity = .5f;
+// xy velocity settings
+float forward_velocity = .7f;
+float turning_rate = .5f;
+
+// yaw rate settings
 float k_outer = .2f;
 float k_inner = .4f;
+
+// green detection settings
+float floor_count_frac = 0.1;
 
 int16_t color_count_a = 0;
 int16_t color_count_b = 0; 
 int16_t color_count_c = 0; 
 int16_t color_count_d = 0; 
 
-/*
- * This next section defines an ABI messaging event (http://wiki.paparazziuav.org/wiki/ABI), necessary
- * any time data calculated in another module needs to be accessed. Including the file where this external
- * data is defined is not enough, since modules are executed parallel to each other, at different frequencies,
- * in different threads. The ABI event is triggered every time new data is sent out, and as such the function
- * defined in this file does not need to be explicitly called, only bound in the init function
- */
+int32_t floor_count = 0;
+
+enum navigation_state_t navigation_state = SAFE;
+
+
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
 #define ORANGE_AVOIDER_VISUAL_DETECTION_ID ABI_BROADCAST
 #endif
@@ -78,9 +82,23 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
 }
 
 
+#ifndef FLOOR_VISUAL_DETECTION_ID
+#define FLOOR_VISUAL_DETECTION_ID ABI_BROADCAST
+#endif
+static abi_event floor_detection_ev;
+static void floor_detection_cb(uint8_t __attribute__((unused)) sender_id,
+                               int16_t __attribute__((unused)) count_region_a, int16_t __attribute__((unused)) count_region_b,
+                               int16_t __attribute__((unused)) count_region_c, int16_t __attribute__((unused)) count_region_d,
+                               int32_t total_count, int16_t __attribute__((unused)) extra)
+{
+  floor_count = total_count;
+}
+
+
 void our_avoider_init(void)
 {
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+  AbiBindMsgVISUAL_DETECTION(FLOOR_VISUAL_DETECTION_ID, &floor_detection_ev, floor_detection_cb);
 }
 
 
@@ -90,25 +108,53 @@ void our_avoider_periodic(void)
     return;
   };
 
+  int32_t floor_count_threshold = floor_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  guidance_h_set_body_vel(forward_velocity, 0);
+  printf("a: %d, b: %d, c: %d, d: %d \n", color_count_a, color_count_b, color_count_c, color_count_d);
+  printf("threshold: %d \n", floor_count_threshold);
+  printf("green total: %d \n", floor_count);
+  
 
-  if(color_count_a + color_count_d != 0 && color_count_b + color_count_c != 0) {
+  switch(navigation_state) {
+    case SAFE:
 
-    float norm_outer = color_count_a + color_count_d;
-    float norm_inner = color_count_b + color_count_c;
+      if(floor_count < floor_count_threshold) {
+        printf("OUTTA POCKET \n");
+        navigation_state = OUT_OF_BOUNDS;
+      }
 
-    float diff_outer = color_count_a - color_count_d;
-    float diff_inner = color_count_b - color_count_c;
+      guidance_h_set_body_vel(forward_velocity, 0);
 
-    float heading_rate = k_outer * (diff_outer / norm_outer) + k_inner * (diff_inner / norm_inner);
+      if(color_count_a + color_count_d != 0 && color_count_b + color_count_c != 0) {
+        float norm_outer = color_count_a + color_count_d;
+        float norm_inner = color_count_b + color_count_c;
 
-    printf("heading rate: %.2f", heading_rate);
+        float diff_outer = color_count_a - color_count_d;
+        float diff_inner = color_count_b - color_count_c;
 
-    guidance_h_set_heading_rate(heading_rate);
-  } else {
-    guidance_h_set_heading_rate(0.f);
+        float heading_rate = k_outer * (diff_outer / norm_outer) + k_inner * (diff_inner / norm_inner);
+
+        guidance_h_set_heading_rate(heading_rate);
+
+      } else {
+        guidance_h_set_heading_rate(0.f);
+      }
+      break;
+
+    case OUT_OF_BOUNDS:
+      guidance_h_set_body_vel(-forward_velocity, 0);
+      navigation_state = TURNING;
+      break;
+
+    case TURNING:
+      guidance_h_set_body_vel(0, 0);
+      guidance_h_set_heading_rate(turning_rate);
+      if(floor_count > 1.5 * floor_count_threshold) {
+        printf("INNA POCKET \n");
+        guidance_h_set_heading_rate(0.f);
+        navigation_state = SAFE;
+      break;
+    }
   }
-
   return;
 }

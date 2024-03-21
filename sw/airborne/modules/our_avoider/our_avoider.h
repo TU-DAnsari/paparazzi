@@ -13,7 +13,8 @@
 #ifndef ORANGE_AVOIDER_H
 #define ORANGE_AVOIDER_H
 
-// functions
+extern float floor_count_frac;
+
 extern void our_avoider_init(void);
 extern void our_avoider_periodic(void);
 
