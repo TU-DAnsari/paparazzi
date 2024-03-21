@@ -82,6 +82,7 @@ struct count_object_t {
   uint16_t color_count_b;
   uint16_t color_count_c;
   uint16_t color_count_d;
+  uint32_t color_count_total;
   bool updated;
 };
 
@@ -89,6 +90,11 @@ struct count_object_t global_filters[2];
 
 // Function
 struct count_object_t count_pixel_region(struct image_t *img,
+                              uint8_t lum_min, uint8_t lum_max,
+                              uint8_t cb_min, uint8_t cb_max,
+                              uint8_t cr_min, uint8_t cr_max);
+
+struct count_object_t count_pixel_total(struct image_t *img,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max);
@@ -115,6 +121,17 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
       cr_min = cod_cr_min1;
       cr_max = cod_cr_max1;
       draw = cod_draw1;
+
+      struct count_object_t region_counts = count_pixel_region(img, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
+
+      pthread_mutex_lock(&mutex);
+      global_filters[filter-1].color_count_a = region_counts.color_count_a;
+      global_filters[filter-1].color_count_b = region_counts.color_count_b;
+      global_filters[filter-1].color_count_c = region_counts.color_count_c;
+      global_filters[filter-1].color_count_d = region_counts.color_count_d;
+      global_filters[filter-1].color_count_total = 0;
+      global_filters[filter-1].updated = true;
+      pthread_mutex_unlock(&mutex);
       break;
     case 2:
       lum_min = cod_lum_min2;
@@ -124,22 +141,21 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
       cr_min = cod_cr_min2;
       cr_max = cod_cr_max2;
       draw = cod_draw2;
+
+      struct count_object_t total_count = count_pixel_total(img, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
+
+      pthread_mutex_lock(&mutex);
+      global_filters[filter-1].color_count_a = 0;
+      global_filters[filter-1].color_count_b = 0;
+      global_filters[filter-1].color_count_c = 0;
+      global_filters[filter-1].color_count_d = 0;
+      global_filters[filter-1].color_count_total = total_count.color_count_total;
+      global_filters[filter-1].updated = true;
+      pthread_mutex_unlock(&mutex);
       break;
     default:
       return img;
   };
-
-
-  struct count_object_t region_counts = count_pixel_region(img, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
-
-  pthread_mutex_lock(&mutex);
-  global_filters[filter-1].color_count_a = region_counts.color_count_a;
-  global_filters[filter-1].color_count_b = region_counts.color_count_b;
-  global_filters[filter-1].color_count_c = region_counts.color_count_c;
-  global_filters[filter-1].color_count_d = region_counts.color_count_d;
-  global_filters[filter-1].updated = true;
-  pthread_mutex_unlock(&mutex);
-
   return img;
 }
 
@@ -200,9 +216,9 @@ struct count_object_t count_pixel_region(struct image_t *img,
 {
 
   struct Region regions[] = {
-    {img->w / 3, 0 * img->h / 4, img->w / 3, img->h / 4},               // Region 1
-    {img->w / 3, 1 * img->h / 4, img->w / 3, img->h / 4},      // Region 2
-    {img->w / 3, 2 * img->h / 4, img->w / 3, img->h / 4},      // Region 3
+    {img->w / 3, 0 * img->h / 4, img->w / 3, img->h / 4},  
+    {img->w / 3, 1 * img->h / 4, img->w / 3, img->h / 4},
+    {img->w / 3, 2 * img->h / 4, img->w / 3, img->h / 4},
     {img->w / 3, 3 * img->h / 4, img->w / 3, img->h / 4}   
   };
 
@@ -254,6 +270,47 @@ struct count_object_t count_pixel_region(struct image_t *img,
   return counts_object;
 }
 
+
+struct count_object_t count_pixel_total(struct image_t *img,
+                              uint8_t lum_min, uint8_t lum_max,
+                              uint8_t cb_min, uint8_t cb_max,
+                              uint8_t cr_min, uint8_t cr_max)
+{
+  uint32_t count = 0;
+  uint8_t *buffer = img->buf;
+
+  struct count_object_t count_object;
+
+  // Go through all the pixels
+  for (uint16_t y = 0; y < img->h; y++) {
+    for (uint16_t x = 0; x < img->w; x ++) {
+      // Check if the color is inside the specified values
+      uint8_t *yp, *up, *vp;
+      if (x % 2 == 0) {
+        // Even x
+        up = &buffer[y * 2 * img->w + 2 * x];      // U
+        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y1
+        vp = &buffer[y * 2 * img->w + 2 * x + 2];  // V
+        //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
+      } else {
+        // Uneven x
+        up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
+        //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
+        vp = &buffer[y * 2 * img->w + 2 * x];      // V
+        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
+      }
+      if ((*yp >= lum_min) && (*yp <= lum_max) &&
+          (*up >= cb_min ) && (*up <= cb_max ) &&
+          (*vp >= cr_min ) && (*vp <= cr_max )) {
+          count++;
+        }
+      }
+    }
+  count_object.color_count_total = count;
+  return count_object;
+}
+
+
 void color_object_detector_periodic(void)
 {
   static struct count_object_t local_filters[2];
@@ -272,11 +329,7 @@ void color_object_detector_periodic(void)
   }
   if(local_filters[1].updated){
     AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION2_ID, 
-    local_filters[1].color_count_a, 
-    local_filters[1].color_count_b,
-    local_filters[1].color_count_c,
-    local_filters[1].color_count_d,
-    0, 0);
+    0, 0, 0, 0, local_filters[1].color_count_total, 0);
     local_filters[1].updated = false;
   }
 }
