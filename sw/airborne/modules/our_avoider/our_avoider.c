@@ -62,7 +62,7 @@ float INNER_BOUNDS = 2.5f;
 float anglewrtEnu = -20;
 
 // max velocity settings
-float forward_velocity = .7f;
+float forward_velocity = .5f;
 float lateral_velocity = 0.1f;
 float heading_turn_rate = 3.f;
 float heading_search_rate = 0.5f;
