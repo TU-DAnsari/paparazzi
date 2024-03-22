@@ -40,12 +40,13 @@
 #define VERBOSE_PRINT(...)
 #endif
 
+int sign(int num);
 float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goaly);
 float computePIDheading(float droneheading, float targetheading);
 
 enum navigation_state_t {
   SAFE,
-  OBSTACLE_FOUND,
+  FRONTAL_OBSTACLE,
   SEARCH_FOR_SAFE_HEADING,
   OUT_OF_BOUNDS,
   TOP_LINE,
@@ -54,23 +55,27 @@ enum navigation_state_t {
   LEFT_LINE
 };
 
-// xy velocity settings
+
+// arena settings
+float OUTER_BOUNDS = 3.f;
+float INNER_BOUNDS = 2.5f;
+float anglewrtEnu = -20;
+
+// max velocity settings
 float forward_velocity = .7f;
-float turning_rate = .5f;
+float lateral_velocity = 0.1f;
+float heading_turn_rate = 3.f;
+float heading_search_rate = 0.5f;
 
-// yaw rate settings
-float k_outer = .2f;
-float k_inner = .4f;
+// yaw rate proportional factors
+float k_outer = .5f;
+float k_inner = .5f;
 
-// green detection settings
-float floor_count_frac = 0.1;
-
+// orange count in regions
 int16_t color_count_a = 0;
 int16_t color_count_b = 0; 
 int16_t color_count_c = 0; 
 int16_t color_count_d = 0; 
-
-int32_t floor_count = 0;
 
 enum navigation_state_t navigation_state = SAFE;
 
@@ -91,25 +96,11 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
 }
 
 
-#ifndef FLOOR_VISUAL_DETECTION_ID
-#define FLOOR_VISUAL_DETECTION_ID ABI_BROADCAST
-#endif
-static abi_event floor_detection_ev;
-static void floor_detection_cb(uint8_t __attribute__((unused)) sender_id,
-                               int16_t __attribute__((unused)) count_region_a, int16_t __attribute__((unused)) count_region_b,
-                               int16_t __attribute__((unused)) count_region_c, int16_t __attribute__((unused)) count_region_d,
-                               int32_t total_count, int16_t __attribute__((unused)) extra)
-{
-  floor_count = total_count;
-}
-
-
 void our_avoider_init(void)
 {
   srand(time(NULL));
 
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
-  AbiBindMsgVISUAL_DETECTION(FLOOR_VISUAL_DETECTION_ID, &floor_detection_ev, floor_detection_cb);
 }
 
 
@@ -117,26 +108,22 @@ void our_avoider_periodic(void)
 {
   // Only run the mudule if we are in the correct flight mode
   if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
-    navigation_state = SEARCH_FOR_SAFE_HEADING;
+    navigation_state = SAFE;
     return;
   }
 
-  int32_t floor_count_threshold = floor_count_frac * front_camera.output_size.w * front_camera.output_size.h;
+  float region_size = front_camera.output_size.w / 3 * front_camera.output_size.h / 4; 
+  float slice_size = front_camera.output_size.w / 3 * front_camera.output_size.h; 
+  float of = (color_count_a + color_count_b + color_count_c + color_count_d) / slice_size; // total orange fraction (of) in slice
+  float of_a = color_count_a / region_size; // total orange fraction (of) in given region
+  float of_b = color_count_b / region_size; 
+  float of_c = color_count_c / region_size;
+  float of_d = color_count_d / region_size;
 
 
-
-
-  float speed_sp = forward_velocity;
-  
-  float anglewrtEnu = -20;
   float newx = +cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x - sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
   float newy = sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x + cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
 
-
-  VERBOSE_PRINT("State: %d\n", navigation_state);
-  VERBOSE_PRINT("current position LEFT RIGHT: %f\n", newx); //LEFT MINUS RIGHT PLUS
-  VERBOSE_PRINT("current position UP DOWN ENU: %f\n", newy); //DOWN MINUS UP PLUS  
-  
 
   // SOMETHING IS WRONG WITH THE POS VALIES THEY JUST DONT MAKE SENSE
   float heading = stateGetNedToBodyEulers_f()->psi;
@@ -145,10 +132,21 @@ void our_avoider_periodic(void)
   if (heading_deg > 180){
     heading_deg = 360 - heading_deg;
   }
-  VERBOSE_PRINT("heading normalized angle: %f\n", heading_deg);
-  float headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
-  float heading_rate = computePIDheading(heading_deg, headingReq);
-  VERBOSE_PRINT("Heading REQ: %f heading diff: %f heading rate: %f\n", headingReq, headingReq-heading_deg, heading_rate);
+  
+  // float headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
+  // float heading_rate = computePIDheading(heading_deg, headingReq);
+  
+
+  VERBOSE_PRINT("\n");
+  VERBOSE_PRINT("of: %f\n", of); 
+  VERBOSE_PRINT("of a: %f\n", of_a); 
+  VERBOSE_PRINT("of b: %f\n", of_b);
+  VERBOSE_PRINT("of c: %f\n", of_c);
+  VERBOSE_PRINT("of d: %f\n", of_d);
+  VERBOSE_PRINT("position (x, y): %f, %f\n", newx, newy); 
+  VERBOSE_PRINT("heading (deg): %f\n", heading_deg);
+
+  // VERBOSE_PRINT("Heading REQ: %f heading diff: %f heading rate: %f\n", headingReq, headingReq-heading_deg, heading_rate);
 
   // zero up %%% 180 down %%% positive right %%% negative left
 
@@ -161,187 +159,218 @@ void our_avoider_periodic(void)
 
   switch (navigation_state){
     case SAFE:
-      //make sure that the priority is good, might wanna change it a bit
-      if (fabsf(newx) > 3.2 || fabsf(newy) > 3.2){
-        if(newy >= 3.2 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))) {
-          //top side
+      VERBOSE_PRINT("STATE: SAFE\n");
+      // check if drone is out of bounds
+      if (fabsf(newx) > OUTER_BOUNDS || fabsf(newy) > OUTER_BOUNDS) {
+        // if outside outer bounds, check if facing out of bounds
+        if(newy >= OUTER_BOUNDS && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))) {
+          // top side
           navigation_state = OUT_OF_BOUNDS;
-        } else if(newy <= -3.2 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))) {
-          //bottom side 
+          break;
+        } else if(newy <= -OUTER_BOUNDS && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))) {
+          // bottom side 
           navigation_state = OUT_OF_BOUNDS;
-        } else if(newx <= -3.2 && -180 <= heading_deg && heading_deg <= 0) {
-          //left side
+          break;
+        } else if(newx <= -OUTER_BOUNDS && -180 <= heading_deg && heading_deg <= 0) {
+          // left side
           navigation_state = OUT_OF_BOUNDS;
-        } else if(newx >= 3.2 && 0 <= heading_deg && heading_deg <= 180) {
-          //right side
+          break;
+        } else if(newx >= OUTER_BOUNDS && 0 <= heading_deg && heading_deg <= 180) {
+          // right side
           navigation_state = OUT_OF_BOUNDS;
-        } else {
-          guidance_h_set_body_vel(speed_sp, 0);
-          guidance_h_set_heading_rate(RadOfDeg(0));
-        }
-      } else if (newy >= 2.5 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
-        // close to edge
-        navigation_state = TOP_LINE;
-      } else if (newx >= 2.5 && 0 <= heading_deg && heading_deg <= 180){
-        // close to edge
-        navigation_state = RIGHT_LINE;
-      } else if (newy <= -2.5 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
-        // close to edge
-        navigation_state = BOTTOM_LINE;
-      } else if (newx <= -2.5 && -180 <= heading_deg && heading_deg <= 0){
-        // close to edge
-        navigation_state = LEFT_LINE;
-      } else {
-        // guidance_h_set_body_vel(speed_sp, 0);
-        // guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(0));
-
-        guidance_h_set_body_vel(speed_sp, 0);
-
-        if(color_count_a + color_count_d != 0 && color_count_b + color_count_c != 0) {
-          float norm_outer = color_count_a + color_count_d;
-          float norm_inner = color_count_b + color_count_c;
-
-          float diff_outer = color_count_a - color_count_d;
-          float diff_inner = color_count_b - color_count_c;
-
-          float heading_rate = k_outer * (diff_outer / norm_outer) + k_inner * (diff_inner / norm_inner);
-
-          guidance_h_set_heading_rate(heading_rate);
-
-        } else {
-          guidance_h_set_heading_rate(0);
+          break;
         }
       }
+
+      // if outside inner bounds, turn inside
+      if (newy >= INNER_BOUNDS && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))) {
+        // close to edge
+        navigation_state = TOP_LINE;
+        break;
+      } else if (newx >= INNER_BOUNDS && 0 <= heading_deg && heading_deg <= 180) {
+        // close to edge
+        navigation_state = RIGHT_LINE;
+        break;
+      } else if (newy <= -INNER_BOUNDS && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))) {
+        // close to edge
+        navigation_state = BOTTOM_LINE;
+        break;
+      } else if (newx <= -INNER_BOUNDS && -180 <= heading_deg && heading_deg <= 0) {
+        // close to edge
+        navigation_state = LEFT_LINE;
+        break;
+      }
+
+      // if inside inner bounds, obstacle avoidance
+
+      if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+        navigation_state = FRONTAL_OBSTACLE;
+        break;
+      }
+      
+      float av_forward_velocity = (1 - of) * forward_velocity;
+      float av_heading_rate =  (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * heading_turn_rate;
+
+      guidance_h_set_body_vel(av_forward_velocity, sign(av_heading_rate) * lateral_velocity);
+      guidance_h_set_heading_rate(av_heading_rate);
       break;
-    case OBSTACLE_FOUND:
+
+
+    case FRONTAL_OBSTACLE:
+      VERBOSE_PRINT("STATE: FRONTAL_OBSTACLE\n");
       // stop
       guidance_h_set_body_vel(0, 0);
+      guidance_h_set_heading_rate(heading_search_rate);
 
-      // randomly select new search direction
-      // later will use the ref heading
-
-      navigation_state = SEARCH_FOR_SAFE_HEADING;
+      if(of_b < 0.4f && of_c < 0.4f) {
+        navigation_state = SAFE;
+      }
       break;
 
+
     case SEARCH_FOR_SAFE_HEADING:
-      headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
+      VERBOSE_PRINT("STATE: SEARCH_FOR_SAFE_HEADING\n");
+      float headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
       float heading_rate = computePIDheading(heading_deg, headingReq);
-      VERBOSE_PRINT("heading_rate in the loop: %f", heading_rate);
+      // VERBOSE_PRINT("heading_rate in the loop: %f", heading_rate);
       guidance_h_set_heading_rate(RadOfDeg(heading_rate));
       if(fabs(headingReq -heading_deg) < 10) {
         navigation_state = SAFE;
       }
       break;
+
+
     case OUT_OF_BOUNDS:
+      VERBOSE_PRINT("STATE: OUT_OF_BOUNDS\n");
       // stop
       guidance_h_set_body_vel(0, 0);
       navigation_state = SEARCH_FOR_SAFE_HEADING;
       break;
+
+
     case TOP_LINE:
+      VERBOSE_PRINT("STATE: TOP_LINE\n");
       if(newy >= 3 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))){
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 0 && heading_deg <=90){
         //turn right
-        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * forward_velocity, 0.3 * forward_velocity);
         guidance_h_set_heading_rate(RadOfDeg(90));
         navigation_state = SAFE;
       } else if (heading_deg <= 0 && heading_deg >= -90){
         //turn left
-        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * forward_velocity, -0.3 * forward_velocity);
         guidance_h_set_heading_rate(-1.0 * RadOfDeg(90));
         navigation_state = SAFE;
       } else{
-        guidance_h_set_body_vel(speed_sp, 0);
+        guidance_h_set_body_vel(forward_velocity, 0);
         guidance_h_set_heading_rate(RadOfDeg(0));
         navigation_state = SAFE;
       }
       break;
+
+
     case RIGHT_LINE:
+      VERBOSE_PRINT("STATE: RIGHT_LINE\n");
       if(newx >= 3 && 0 <= heading_deg && heading_deg <= 180){
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 90 && heading_deg <=180){
         //turn right
-        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * forward_velocity, 0.3 * forward_velocity);
         guidance_h_set_heading_rate(RadOfDeg(90));
         navigation_state = SAFE;
       } else if (heading_deg <= 90 && heading_deg >= 0){
         //turn left
-        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * forward_velocity, -0.3 * forward_velocity);
         guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
         navigation_state = SAFE;
       } else{
-        guidance_h_set_body_vel(speed_sp, 0);
+        guidance_h_set_body_vel(forward_velocity, 0);
         guidance_h_set_heading_rate(RadOfDeg(0));
         navigation_state = SAFE;
       }
       break;
+
+
     case BOTTOM_LINE:
+      VERBOSE_PRINT("STATE: BOTTOM_LINE\n");
       if(newy <= -3 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))){
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -180 && heading_deg <=-90){
         //turn right
-        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * forward_velocity, 0.3 * forward_velocity);
         guidance_h_set_heading_rate(RadOfDeg(90));
         navigation_state = SAFE;
       } else if (heading_deg <= 180 && heading_deg >= 90){
         //turn left
-        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * forward_velocity, -0.3 * forward_velocity);
         guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
         navigation_state = SAFE;
       } else{
-        guidance_h_set_body_vel(speed_sp, 0);
+        guidance_h_set_body_vel(forward_velocity, 0);
         guidance_h_set_heading_rate(RadOfDeg(0));
         navigation_state = SAFE;
       }
       break;
+
+
     case LEFT_LINE:
+      VERBOSE_PRINT("STATE: LEFT_LINE\n");
       if(newx <= -3 && -180 <= heading_deg && heading_deg <= 0){
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -90 && heading_deg <=0){
         //turn right
-        guidance_h_set_body_vel(0.5 * speed_sp, 0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * forward_velocity, 0.3 * forward_velocity);
         guidance_h_set_heading_rate(RadOfDeg(90));
         navigation_state = SAFE;
       } else if (heading_deg <= -90 && heading_deg >= -180){
         //turn left
-        guidance_h_set_body_vel(0.5 * speed_sp, -0.3 * speed_sp);
+        guidance_h_set_body_vel(0.5 * forward_velocity, -0.3 * forward_velocity);
         guidance_h_set_heading_rate(RadOfDeg(-1.0 * 90));
         navigation_state = SAFE;
       } else{
-        guidance_h_set_body_vel(speed_sp, 0);
+        guidance_h_set_body_vel(forward_velocity, 0);
         guidance_h_set_heading_rate(RadOfDeg(0));
         navigation_state = SAFE;
       }
       break;
+
+
     default:
       break;
   }
   return;
 }
 
+int sign(int num) {
+  if(num > 0) {
+    return 1;
+  } 
+  return -1;
+}
 
 
-  float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goaly) {
-  
-    float heading = 0;
-    float dx = goalx - dronex;
-    float dy = goaly - droney;
-    heading = atan2(dx, dy);
-      
-    // Convert heading from radians to degrees
-    heading = DegOfRad(heading);
-    VERBOSE_PRINT("dx %f dy %f gx %f gy: %f\n", dronex, droney, goalx, goaly);
+float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goaly) {
 
-    VERBOSE_PRINT("inside the heading function heading: %f\n", heading);
-    // Normalize heading to be within [-180, 180) degrees
-    if (heading < -180.0) {
-        heading += 360.0;
-    } else if (heading >= 180.0) {
-        heading -= 360.0;
-    }
-      
-    return heading;
+  float heading = 0;
+  float dx = goalx - dronex;
+  float dy = goaly - droney;
+  heading = atan2(dx, dy);
+    
+  // Convert heading from radians to degrees
+  heading = DegOfRad(heading);
+  // VERBOSE_PRINT("dx %f dy %f gx %f gy: %f\n", dronex, droney, goalx, goaly);
+
+  // VERBOSE_PRINT("inside the heading function heading: %f\n", heading);
+  // Normalize heading to be within [-180, 180) degrees
+  if (heading < -180.0) {
+      heading += 360.0;
+  } else if (heading >= 180.0) {
+      heading -= 360.0;
   }
+    
+  return heading;
+}
 
 
 // also look at guidance_pid.c
