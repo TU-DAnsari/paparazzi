@@ -140,11 +140,13 @@ void our_avoider_periodic(void)
 
   // SOMETHING IS WRONG WITH THE POS VALIES THEY JUST DONT MAKE SENSE
   float heading = stateGetNedToBodyEulers_f()->psi;
-  FLOAT_ANGLE_NORMALIZE(heading);
+  //FLOAT_ANGLE_NORMALIZE(heading);
   float heading_deg = DegOfRad(heading) - anglewrtEnu;
-  FLOAT_ANGLE_NORMALIZE(heading_deg);
+  if (heading_deg > 180){
+    heading_deg = 360 - heading_deg;
+  }
   VERBOSE_PRINT("heading normalized angle: %f\n", heading_deg);
-  float headingReq = CalcDifferenceInHeading(newx, newy, 0, 0);
+  float headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
   float heading_rate = computePIDheading(heading_deg, headingReq);
   VERBOSE_PRINT("Heading REQ: %f heading diff: %f heading rate: %f\n", headingReq, headingReq-heading_deg, heading_rate);
 
@@ -222,11 +224,10 @@ void our_avoider_periodic(void)
       break;
 
     case SEARCH_FOR_SAFE_HEADING:
-      headingReq = CalcDifferenceInHeading(newx, newy, 0, 0);
+      headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
       float heading_rate = computePIDheading(heading_deg, headingReq);
-      VERBOSE_PRINT("heading_rate: %f", heading_rate);
-      //guidance_h_set_heading_rate(heading_rate);
-      guidance_h_set_heading_rate(25);
+      VERBOSE_PRINT("heading_rate in the loop: %f", heading_rate);
+      guidance_h_set_heading_rate(RadOfDeg(heading_rate));
       if(fabs(headingReq -heading_deg) < 10) {
         navigation_state = SAFE;
       }
@@ -320,49 +321,27 @@ void our_avoider_periodic(void)
 
 
 
-float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goaly) {
-  // calc the required change in heading
-  // goal is from the path planning
-  // difference will be used for the heading rate command
+  float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goaly) {
+  
+    float heading = 0;
+    float dx = goalx - dronex;
+    float dy = goaly - droney;
+    heading = atan2(dx, dy);
+      
+    // Convert heading from radians to degrees
+    heading = DegOfRad(heading);
+    VERBOSE_PRINT("dx %f dy %f gx %f gy: %f\n", dronex, droney, goalx, goaly);
 
-  // heading
-  // zero up %%% 180 down %%% positive right %%% negative left
-  //positions
-  //LEFT MINUS RIGHT PLUS
-  //DOWN MINUS UP PLUS  
-  // x y
-  // so if + + heading 0-90
-  // if + - heading 90-180
-  // if - - heading -90 - (-180)
-  // if - + heading 0 - (-90)
-  // float diffx = goalx - dronex;
-  // float diffy = goaly - droney;
-  // if (diffx > 0 && diffy > 0){
-  //   heading = DegOfRad(atan(diffx / diffy));
-  // } else if (diffx > 0 && diffy < 0){
-  //   heading =  90 + DegOfRad(atan((-diffy) / diffx));
-  // } else if (diffx < 0 && diffy < 0){
-  //   heading = -180 + DegOfRad(atan((-diffx)/(-diffy)));
-  // } else if (diffx < 0 && diffy > 0){
-  //   heading = -90 + DegOfRad(atan(diffy / (-diffx)));
-  // }
-  float heading = 0;
-  float dx = goalx - dronex;
-  float dy = goaly - droney;
-  heading = atan2(dy, dx);
-    
-  // Convert heading from radians to degrees
-  heading = DegOfRad(heading);
-    
-  // Normalize heading to be within [-180, 180) degrees
-  if (heading < -180.0) {
-      heading += 360.0;
-  } else if (heading >= 180.0) {
-      heading -= 360.0;
+    VERBOSE_PRINT("inside the heading function heading: %f\n", heading);
+    // Normalize heading to be within [-180, 180) degrees
+    if (heading < -180.0) {
+        heading += 360.0;
+    } else if (heading >= 180.0) {
+        heading -= 360.0;
+    }
+      
+    return heading;
   }
-    
-  return heading;
-}
 
 
 // also look at guidance_pid.c
