@@ -272,7 +272,7 @@ void our_avoider_periodic(void)
 
     case TOP_LINE:
       VERBOSE_PRINT("STATE: TOP_LINE\n");
-      if(newy >= 3 && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))) {
+      if(newy >= OUTER_BOUNDS && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))) {
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 0 && heading_deg <=110) {
         //turn right
@@ -294,7 +294,7 @@ void our_avoider_periodic(void)
 
     case RIGHT_LINE:
       VERBOSE_PRINT("STATE: RIGHT_LINE\n");
-      if(newx >= 3 && 0 <= heading_deg && heading_deg <= 180) {
+      if(newx >= OUTER_BOUNDS && 0 <= heading_deg && heading_deg <= 180) {
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 90 && heading_deg <=180) {
         //turn right
@@ -316,7 +316,7 @@ void our_avoider_periodic(void)
 
     case BOTTOM_LINE:
       VERBOSE_PRINT("STATE: BOTTOM_LINE\n");
-      if(newy <= -3 && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))) {
+      if(newy <= -OUTER_BOUNDS && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))) {
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -180 && heading_deg <=-70) {
         //turn right
@@ -338,7 +338,7 @@ void our_avoider_periodic(void)
 
     case LEFT_LINE:
       VERBOSE_PRINT("STATE: LEFT_LINE\n");
-      if(newx <= -3 && -180 <= heading_deg && heading_deg <= 0) {
+      if(newx <= -OUTER_BOUNDS && -180 <= heading_deg && heading_deg <= 0) {
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -90 && heading_deg <=0) {
         //turn right
