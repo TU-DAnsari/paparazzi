@@ -14,7 +14,7 @@
 // #define RANGE_MIN -3
 // #define RANGE_MAX 3
 
-GridMap map;
+
 
 typedef struct {
     int width;
@@ -22,25 +22,35 @@ typedef struct {
     int grid[ROOM_HEIGHT][ROOM_WIDTH]; // 2D array representing the grid map
 } GridMap;
 
+GridMap map;
+
+typedef struct Node Node; 
+
 typedef struct {
     float x;
     float y;
 } Point;
 
-typedef struct {
+struct Node{
     int index_x;
     int index_y;
     float g; // cost from start to current node
     float h; // heuristic (estimated cost from current node to end)
     float f; // total cost (g + h)
-    struct Node* parent;
-} Node;
+    Node* parent;
+};
 
-Point points[] = {{0, 0}, {1, 1}, {2, 2}, {3, 3}}; // Array of points
-int num_points = sizeof(points) / sizeof(points[0]); 
+// Point points[] = {{0, 0}, {1, 1}, {2, 2}, {3, 3}}; // Array of points
+// int num_points = sizeof(points) / sizeof(points[0]); 
+// // int* path;
 // int* path;
-int* path;
-int pathLength = 4;
+// int pathLength = 4;
+
+
+extern Point* points;
+extern int num_points;
+extern int* path;
+extern int pathLength;
 
 extern void probability_map_init();
 extern void probability_map_update();
@@ -49,7 +59,7 @@ extern void printMiddleMap();
 extern float roundToOneDecimal(float num);
 extern float distance(Point p1, Point p2);
 
-extern void generateRandomPoints(Point points[], int num_points);
+// extern void generateRandomPoints(Point points[], int num_points);
 
 extern int coordinatesToIndexX(float x);
 extern int coordinatesToIndexY(float x);

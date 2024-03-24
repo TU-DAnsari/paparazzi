@@ -1,6 +1,8 @@
 #include "modules/probability_map/probability_map.h"
 
-
+int* path = NULL;
+int pathLength = 0;
+int num_points = 0;
 
 float roundToOneDecimal(float num) {
     return roundf(num * 10) / 10;
@@ -28,8 +30,17 @@ void probability_map_init(){
             map.grid[i][j] = 1;
         }
     }
-
+    Point points[] = {{0, 0}, {1, 1}, {2, 2}, {3, 3}};
+    num_points = sizeof(points) / sizeof(points[0]);
     path = createInitialPath(points, num_points);
+    if (path != NULL) {
+        pathLength = 0;
+        while (path[pathLength] != -1) {
+            pathLength++;
+        }
+    } else {
+        pathLength = 0; // or whatever value is appropriate if no path is found
+    }
 }
 
 
@@ -53,12 +64,12 @@ float distance(Point p1, Point p2) {
 }
 
 // Function to generate random points within the specified range
-void generateRandomPoints(Point points[], int num_points) {
-    for (int i = 0; i < num_points; i++) {
-        points[i].x = (float)rand() / RAND_MAX * (RANGE_MAX - RANGE_MIN) + RANGE_MIN;
-        points[i].y = (float)rand() / RAND_MAX * (RANGE_MAX - RANGE_MIN) + RANGE_MIN;
-    }
-}
+// void generateRandomPoints(Point points[], int num_points) {
+//     for (int i = 0; i < num_points; i++) {
+//         points[i].x = (float)rand() / RAND_MAX * (RANGE_MAX - RANGE_MIN) + RANGE_MIN;
+//         points[i].y = (float)rand() / RAND_MAX * (RANGE_MAX - RANGE_MIN) + RANGE_MIN;
+//     }
+// }
 
 
 int coordinatesToIndexX(float x){
@@ -114,9 +125,9 @@ Node getStartNode(){
 
 int countZeroPoints() {
     int count = 0;
-    for (int i = 0; i < ROOM_WIDTH; ++i) {
-        for (int j = 0; j < ROOM_HEIGHT; ++j) {
-            if (map[i][j] == 0) {
+    for (int i = 0; i < map.width; ++i) {
+        for (int j = 0; j < map.height; ++j) {
+            if (map.grid[i][j] == 0) {
                 count++;
             }
         }
@@ -142,9 +153,9 @@ void chooseRandomZeroPoint(int* randomX, int* randomY) {
 
     // Find the corresponding zero point
     int count = 0;
-    for (int i = 0; i < ROOM_WIDTH; ++i) {
-        for (int j = 0; j < ROOM_HEIGHT; ++j) {
-            if (map[i][j] == 0) {
+    for (int i = 0; i < map.width; ++i) {
+        for (int j = 0; j < map.height; ++j) {
+            if (map.grid[i][j] == 0) {
                 if (count == randomIndex) {
                     *randomX = i;
                     *randomY = j;
