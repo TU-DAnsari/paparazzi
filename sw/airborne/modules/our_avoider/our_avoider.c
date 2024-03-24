@@ -27,6 +27,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "modules/our_avoider/probability_map.h"
+
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
 #include "../../boards/ardrone2.h"
@@ -155,20 +157,30 @@ void our_avoider_init(void)
 
 void our_avoider_periodic(void)
 {
+  
+  Point wp = getGlobalDirection(); 
+
+  printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Waypoint X: %f\n", wp.x);
+  printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Waypoint Y: %f\n", wp.y);
+
   // Only run the mudule if we are in the correct flight mode
   if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
-    navigation_state = SAFE;
+    navigation_state = SEARCH_FOR_SAFE_HEADING;
     return;
   }
 
   float region_size = front_camera.output_size.w / 3 * front_camera.output_size.h / 4; 
   float slice_size = front_camera.output_size.w / 3 * front_camera.output_size.h; 
   float of = (color_count_a + color_count_b + color_count_c + color_count_d) / slice_size; // total orange fraction (of) in slice
-  float of_a = color_count_a / region_size; // total orange fraction (of) in given region
-  float of_b = color_count_b / region_size; 
-  float of_c = color_count_c / region_size;
-  float of_d = color_count_d / region_size;
+  // float of_a = color_count_a / region_size; // total orange fraction (of) in given region
+  // float of_b = color_count_b / region_size; 
+  // float of_c = color_count_c / region_size;
+  // float of_d = color_count_d / region_size;
 
+  float of_a = 0;
+  float of_b = 0;
+  float of_c = 0;
+  float of_d = 0;
 
   float newx = +cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x - sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
   float newy = sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x + cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
@@ -274,6 +286,15 @@ void our_avoider_periodic(void)
       //   break;
       // }
 
+      if(of_b < 0.2 && of_c < 0.2) {
+        float wp_forward_velocity = (1 - of + 0.2) * xvel;
+        float wp_heading = CalcDifferenceInHeading(newx, newy, wp.x, wp.y);
+        float wp_heading_rate = computePIDheading(heading, wp_heading);
+        guidance_h_set_body_vel(wp_forward_velocity, sign(wp_heading_rate) * 0.5 * wp_forward_velocity);
+        guidance_h_set_heading_rate(RadOfDeg(wp_heading_rate));
+        break;
+      }
+
       float or_forward_velocity = (1 - of + 0.2) * xvel;
       float or_lateral_velocity = (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * yvel;
       float or_heading_rate =  (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * heading_turn_rate;
@@ -281,7 +302,6 @@ void our_avoider_periodic(void)
       float ob_forward_velocity = (1 - (cnn_p_left + cnn_p_center + cnn_p_right) / 3);
       float ob_lateral_velocity = (cnn_p_left - cnn_p_right) * yvel;
       float ob_heading_rate = (cnn_p_left - cnn_p_right) * heading_turn_rate;
-      
 
       guidance_h_set_body_vel(or_forward_velocity, or_lateral_velocity);
       guidance_h_set_heading_rate(or_heading_rate);
@@ -307,7 +327,7 @@ void our_avoider_periodic(void)
 
     case SEARCH_FOR_SAFE_HEADING:
       VERBOSE_PRINT("STATE: SEARCH_FOR_SAFE_HEADING\n");
-      float headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
+      float headingReq = CalcDifferenceInHeading(newx, newy, wp.x, wp.y);
       float heading_rate = computePIDheading(heading_deg, headingReq);
       // VERBOSE_PRINT("heading_rate in the loop: %f", heading_rate);
       guidance_h_set_heading_rate(RadOfDeg(heading_rate));

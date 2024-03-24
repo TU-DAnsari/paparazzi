@@ -12,7 +12,6 @@ The color filter settings are set using the cv_detect_color_object. This module 
 so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTION_ID setting.
     </description>
     <define name="ORANGE_AVOIDER_VISUAL_DETECTION_ID" value="ABI_BROADCAST" description="which VISUAL_DETECTION message to recieve for orange pole detection."/>
-    <define name="FLOOR_VISUAL_DETECTION_ID" value="ABI_BROADCAST" description="which VISUAL_DETECTION message to recieve for green floor detection."/>
   </doc>
 
   <dep>
@@ -20,10 +19,14 @@ so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTI
   </dep>
   <header>
     <file name="our_avoider.h"/>
+    <file name="probability_map.h"/>
   </header>
   <init fun="our_avoider_init()"/>
+  <init fun="probability_map_init()"/>
   <periodic fun="our_avoider_periodic()" freq="4"/>
+  <periodic fun="probability_map_update()" freq="1"/>
   <makefile target="ap|nps">
     <file name="our_avoider.c"/>
+    <file name="probability_map.c"/>
   </makefile>
 </module>

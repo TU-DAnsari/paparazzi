@@ -97,6 +97,7 @@
       <define name="DETECT_CONTOUR_CAMERA" value="front_camera"/>
       <define name="DETECT_CONTOUR_FPS" value="2"/>
     </module>
+
   </firmware>
 
   <commands>
