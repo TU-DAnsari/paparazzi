@@ -40,7 +40,8 @@
 // #include "MobileTinyv3.h"
 // #include "MobileNetTinyTrained.h"
 // #include "MobileNetTinyv5Trained.h"
-#include "MobileNetTinyv6Trained.h"
+// #include "MobileNetTinyv6Trained.h"
+#include "MobileNetTinyv6TrainedSim.h"
 
 #include "lib/vision/image.h"
 #include <sys/time.h>
@@ -127,7 +128,7 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
   Mat cropped_image_mid = image_rotated(Range(35,205), Range(170,340));
   Mat cropped_image_right = image_rotated(Range(35,205), Range(340,510));
   
-
+  
 
   //cropped_image_mid.setTo(cv::Scalar(100,20,10));
 

@@ -31,7 +31,7 @@
 #include "generated/flight_plan.h"
 #include "../../boards/ardrone2.h"
 
-#define ORANGE_AVOIDER_VERBOSE TRUE
+#define ORANGE_AVOIDER_VERBOSE FALSE
 
 #define PRINT(string,...) fprintf(stderr, "[orange_avoider->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
 #if ORANGE_AVOIDER_VERBOSE
@@ -63,16 +63,16 @@ float SAFE_BOUNDS = 2.3f;
 float anglewrtEnu = -35;
 
 // avoidance velocity settings
-float safe_xvel = .5f;
-float unsafe_xvel = .4f;
-float safe_yvel = .5f;
-float unsafe_yvel = .5f;
+float safe_xvel = .2f;
+float unsafe_xvel = .1f;
+float safe_yvel = .2f;
+float unsafe_yvel = .1f;
 float heading_turn_rate = 2.f;
 float heading_search_rate = 0.5f;
 float xvel;
 float yvel;
 
-float cornering_xvel = 0.2f;
+float cornering_xvel = 0.1f;
 float cornering_yvel = 0.5f;
 float cornering_turn_rate = 1.6f;
 
@@ -123,21 +123,21 @@ static void cnn_obs_cb(uint8_t __attribute__((unused)) sender_id,
   cnn_p_center = prob_center;
   cnn_p_right = prob_right;
 
-  if (cnn_p_center > 0.6f){
-      printf("Obstacle straight ahead! | ");
-      if (cnn_p_left < 0.5f || cnn_p_right < 0.5f){
-        if (cnn_p_left < cnn_p_right) {
-          printf("Turn left!\n");
-        }
-        else {
-          printf("Turn right!\n");
-        }
-      }
+//   if (cnn_p_center > 0.6f){
+//       printf("Obstacle straight ahead! | ");
+//       if (cnn_p_left < 0.5f || cnn_p_right < 0.5f){
+//         if (cnn_p_left < cnn_p_right) {
+//           printf("Turn left!\n");
+//         }
+//         else {
+//           printf("Turn right!\n");
+//         }
+//       }
 
-      else
-        printf("Nowhere to go!, turn around!\n");
-    }
-    else printf("Fly straight!\n");
+//       else
+//         printf("Nowhere to go!, turn around!\n");
+//     }
+//     else printf("Fly straight!\n");
 }
 
 
@@ -264,27 +264,27 @@ void our_avoider_periodic(void)
 
       // if inside inner bounds, obstacle avoidance
 
-      if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
-        navigation_state = FRONTAL_OBSTACLE;
-        break;
-      }
-
-      // if(cnn_p_center > 0.8) {
+      // if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
       //   navigation_state = FRONTAL_OBSTACLE;
       //   break;
       // }
+
+      if(cnn_p_center > 0.8) {
+        navigation_state = FRONTAL_OBSTACLE;
+        break;
+      }
 
       float or_forward_velocity = (1 - of + 0.2) * xvel;
       float or_lateral_velocity = (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * yvel;
       float or_heading_rate =  (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * heading_turn_rate;
 
-      float ob_forward_velocity = (1 - (cnn_p_left + cnn_p_center + cnn_p_right) / 3);
+      float ob_forward_velocity = (1 - (cnn_p_left + cnn_p_center + cnn_p_right) / 3) * xvel;
       float ob_lateral_velocity = (cnn_p_left - cnn_p_right) * yvel;
       float ob_heading_rate = (cnn_p_left - cnn_p_right) * heading_turn_rate;
       
 
-      guidance_h_set_body_vel(or_forward_velocity, or_lateral_velocity);
-      guidance_h_set_heading_rate(or_heading_rate);
+      guidance_h_set_body_vel(ob_forward_velocity, ob_lateral_velocity);
+      guidance_h_set_heading_rate(ob_heading_rate);
       break;
 
 
@@ -294,13 +294,13 @@ void our_avoider_periodic(void)
       guidance_h_set_body_vel(0, 0);
       guidance_h_set_heading_rate(heading_search_rate);
 
-      if(of_b < 0.4f && of_c < 0.4f) {
-        navigation_state = SAFE;
-      }
-
-      // if(cnn_p_center < 0.8f) {
+      // if(of_b < 0.4f && of_c < 0.4f) {
       //   navigation_state = SAFE;
       // }
+
+      if(cnn_p_center < 0.8f) {
+        navigation_state = SAFE;
+      }
 
       break;
 
