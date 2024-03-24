@@ -22,11 +22,28 @@
  * @author Roland Meertens and Peng Lu
  *
  */
+#include <time.h>
 
 #include "opencv_contour.h"
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+#include <opencv2/imgcodecs.hpp>
+
 #include "opencv_image_functions.h"
+
+#include <iostream>
+
+// #include "object_classification_cnn.h"
+// #include "MobileTinyv1.h"
+// #include "MobileTinyv2.h"
+// #include "MobileTinyv3.h"
+// #include "MobileNetTinyTrained.h"
+// #include "MobileNetTinyv5Trained.h"
+#include "MobileNetTinyv6Trained.h"
+
+#include "lib/vision/image.h"
+#include <sys/time.h>
 
 using namespace cv;
 using namespace std;
@@ -35,6 +52,12 @@ struct contour_estimation cont_est;
 struct contour_threshold cont_thres;
 
 RNG rng(12345);
+
+#define EULER_NUMBER_F 2.71828182846
+
+float sigmoidf(float n) {
+    return (1 / (1 + powf(EULER_NUMBER_F, -n)));
+}
 
 // YUV in opencv convert to YUV on Bebop
 void yuv_opencv_to_yuv422(Mat image, char *img, int width, int height)
@@ -76,104 +99,200 @@ void uyvy_opencv_to_yuv_opencv(Mat image, Mat image_in, int width, int height)
   }
 }
 
-void find_contour(char *img, int width, int height)
+void find_contour(char *img, int width, int height, float *l_prob, float *c_prob, float *r_prob)
 {
-  // Create a new image, using the original bebop image.
-  Mat M(width, height, CV_8UC2, img); // original
-  Mat image, edge_image, thresh_image;
 
-  // convert UYVY in paparazzi to YUV in opencv
-  cvtColor(M, M, CV_YUV2RGB_Y422);
-  cvtColor(M, M, CV_RGB2YUV);
 
-  // Threshold all values within the indicted YUV values.
-  inRange(M, Scalar(cont_thres.lower_y, cont_thres.lower_u, cont_thres.lower_v), Scalar(cont_thres.upper_y,
-          cont_thres.upper_u, cont_thres.upper_v), thresh_image);
+  struct timeval start_pre, end_pre;
+  
+  // Get the start time
+  gettimeofday(&start_pre, NULL);
 
-  /// Find contours
-  vector<vector<Point> > contours;
-  vector<Vec4i> hierarchy;
-  edge_image = thresh_image;
-  int edgeThresh = 35;
-  Canny(edge_image, edge_image, edgeThresh, edgeThresh * 3);
-  findContours(edge_image, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-  // Get the moments
-  vector<Moments> mu(contours.size());
-  for (unsigned int i = 0; i < contours.size(); i++) {
-    mu[i] = moments(contours[i], false);
+  // Transform image buffer img into an OpenCV YUV422 Mat
+  Mat M (height, width, CV_8UC2, img);
+  // Convert to OpenCV BGR
+  Mat image(height, width, CV_8UC3);
+  Mat image_rotated;
+  cvtColor (M, image, CV_YUV2BGR_Y422);
+
+  // cvtColor (image, grey, COLOR_BGR2GRAY);
+  
+
+  rotate(image, image_rotated, cv::ROTATE_90_COUNTERCLOCKWISE);
+  // 0, 35, 170, 205)))\n",
+  //   "    img2_d = np.asarray(depth.crop((170, 35, 340, 205)))\n",
+  //   "    img3_d = np.asarray(depth.crop((340, 35, 510, 205
+  Mat cropped_image_left = image_rotated(Range(35,205), Range(0,170));
+  Mat cropped_image_mid = image_rotated(Range(35,205), Range(170,340));
+  Mat cropped_image_right = image_rotated(Range(35,205), Range(340,510));
+  
+
+
+  //cropped_image_mid.setTo(cv::Scalar(100,20,10));
+
+  // if (!imwrite("/tmp/paparazzi/rgbrot.png", cropped_image)) {
+  //     cout << "Failed to save the image" << endl;
+  // }
+
+  
+
+  //cropped_image.convertTo(cropped_image, CV_32FC3, 1/255.0);
+
+
+  // Creating the tensor array
+  float tensor_input[3][3][85][85];
+  
+  // memset(&tensor_input[0][0][0][0], 1, sizeof(float) * 3*3*85*85);
+
+  // float copy_tensor[3][85][85];
+
+  
+  int nRows = cropped_image_left.rows;
+  int nCols = cropped_image_left.cols;
+  //printf("Ncols: %d", nCols);
+  int i,j;
+  uchar *pl, *pm, *pr;
+  for( i = 0; i < nRows; i += 2)
+  {
+      pl = cropped_image_left.ptr<uchar>(i);
+      pm = cropped_image_mid.ptr<uchar>(i);
+      pr = cropped_image_right.ptr<uchar>(i);
+
+      for ( j = 0; j < nCols; j += 2)
+      {
+          tensor_input[0][2][j/2][i/2] = (float)pl[(j*3)] /255.0; // Check i, j order
+          tensor_input[0][1][j/2][i/2] = (float)pl[(j*3)+1] /255.0;
+          tensor_input[0][0][j/2][i/2] = (float)pl[(j*3)+2] /255.0;
+
+          tensor_input[1][2][j/2][i/2] = (float)pm[(j*3)] /255.0; // Check i, j order
+          //printf("%f,", (float)pm[j] /255.0);
+          tensor_input[1][1][j/2][i/2] = (float)pm[(j*3)+1] /255.0;
+          tensor_input[1][0][j/2][i/2] = (float)pm[(j*3)+2] /255.0;
+
+          tensor_input[2][2][j/2][i/2] = (float)pr[(j*3)] /255.0; // Check i, j order
+          tensor_input[2][1][j/2][i/2] = (float)pr[(j*3)+1] /255.0;
+          tensor_input[2][0][j/2][i/2] = (float)pr[(j*3)+2] /255.0;
+      }
+      //printf("endj: %d", j);
   }
 
-  //  Get the mass centers:
-  vector<Point2f> mc(contours.size());
-  for (unsigned int i = 0; i < contours.size(); i++) {
-    mc[i] = Point2f(mu[i].m10 / mu[i].m00 , mu[i].m01 / mu[i].m00);
-  }
+  //printf("data: %f", copy_tensor[0][0][0]);
 
-  /// Draw contours
-  Mat drawing = Mat::zeros(edge_image.size(), CV_8UC3);
-  for (unsigned int i = 0; i < contours.size(); i++) {
-    Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-    drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, Point());
-    circle(drawing, mc[i], 4, color, -1, 8, 0);
-  }
+  //printf("size: %d",sizeof (copy_tensor));
 
-  // Find Largest Contour
-  int largest_contour_index = 0;
-  int largest_area = 0;
-  Rect bounding_rect;
+  // memcpy(&tensor_input[0][0][0][0], &copy_tensor, sizeof (copy_tensor));
+  // memcpy(&tensor_input[1][0][0][0], &copy_tensor, sizeof (copy_tensor));
+  // memcpy(&tensor_input[2][0][0][0], &copy_tensor, sizeof (copy_tensor));
+  
+  // Get the end time
+  gettimeofday(&end_pre, NULL);
+  
+  // Calculate the elapsed time in microseconds
+  long elapsed_pre = (end_pre.tv_sec - start_pre.tv_sec) * 1000000 + end_pre.tv_usec - start_pre.tv_usec;
+  //printf("Elapsed time, image moving: %ld microseconds\n", elapsed_pre);
 
-  // iterate through each contour.
-  for (unsigned int i = 0; i < contours.size(); i++) {
-    //  Find the area of contour
-    double a = contourArea(contours[i], false);
-    if (a > largest_area) {
-      largest_area = a;
-      // Store the index of largest contour
-      largest_contour_index = i;
-      // Find the bounding rectangle for biggest contour
-      bounding_rect = boundingRect(contours[i]);
-    }
-  }
-  Scalar color(255, 255, 255);
-  // Draw the contour and rectangle
-  drawContours(M, contours, largest_contour_index, color, CV_FILLED, 8, hierarchy);
+  //cvtColor(M, M, CV_YUV2GRAY_Y422);
+  float tensor_output[3][1];
+  //memset(tensor_output, 0, sizeof tensor_output);
 
-  rectangle(M, bounding_rect,  Scalar(0, 255, 0), 2, 8, 0);
+  struct timeval start, end;
+  
+  // Get the start time
+  gettimeofday(&start, NULL);
+  
+//   printf("in: %f", tensor_input[0][0][0][0]);
+//   printf("in: %f", tensor_input[2][2][84][84]);
 
-  // some figure can cause there are no largest circles, in this case, do not draw circle
-  circle(M, mc[largest_contour_index], 4, Scalar(0, 255, 0), -1, 8, 0);
-  Point2f rect_center(bounding_rect.x + bounding_rect.width / 2 , bounding_rect.y + bounding_rect.height / 2);
-  circle(image, rect_center, 4, Scalar(0, 0, 255), -1, 8, 0);
+//   for (int i = 0; i < 3; ++i) {
+//     for (int j = 0; j < 3; ++j) {
+//         for (int k = 0; k < 85; ++k) {
+//             for (int l = 0; l < 85; ++l) {
+//                 if (tensor_input[i][j][k][l] != 0.0f) printf("Bruh %f", tensor_input[i][j][k][l]);
+//             }
+//         }
+//     }
+// }
 
-  // Convert back to YUV422, and put it in place of the original image
-  grayscale_opencv_to_yuv422(M, img, width, height);
-  float contour_distance_est;
-  //estimate the distance in X, Y and Z direction
-  float area = bounding_rect.width * bounding_rect.height;
-  if (area > 28000.) {
-    contour_distance_est = 0.1;
-  }
-  if ((area > 16000.) && (area < 28000.)) {
-    contour_distance_est = 0.5;
-  }
-  if ((area > 11000.) && (area < 16000.)) {
-    contour_distance_est = 1;
-  }
-  if ((area > 3000.) && (area < 11000.)) {
-    contour_distance_est = 1.5;
-  }
-  if (area < 3000.) {
-    contour_distance_est = 2.0;
-  }
-  cont_est.contour_d_x = contour_distance_est;
-  float Im_center_w = width / 2.;
-  float Im_center_h = height / 2.;
-  float real_size = 1.; // real size of the object
-  cont_est.contour_d_y = -(rect_center.x - Im_center_w) * real_size / float(bounding_rect.width); // right hand
-  cont_est.contour_d_z = -(rect_center.y - Im_center_h) * real_size / float(bounding_rect.height); // point downwards
+  entry(tensor_input, tensor_output);
+  //printf("daatain: %f, %f", tensor_input[0][0][0][0], tensor_input[1][0][0][0]);
+  
+  // printf("1: %f, %f\n", tensor_output[0][0], tensor_output[0][1]);
+  
+  // printf("i0: %f\n", tensor_input[1][0][0][0]);
+  // printf("i1: %f\n", tensor_input[1][1][0][0]);
+  // printf("i2: %f\n", tensor_input[1][2][0][0]);
+  
+  
+  // printf("i0: %f\n", tensor_input[1][0][50][50]);
+  // printf("i1: %f\n", tensor_input[1][1][50][50]);
+  // printf("i2: %f\n", tensor_input[1][2][50][50]);
+  
+  // printf("0: %f\n", tensor_output[0][0]);
+  // printf("1: %f\n", tensor_output[1][0]);
+  // printf("2: %f\n", tensor_output[2][0]);
+  // exit(0);
+  // printf("3: %f, %f\n", tensor_output[2][0], tensor_output[2][1]);
+  
+  // float leftobstacle_prob = sigmoidf(tensor_output[0][0]);
+  // float centerobstacle_prob = sigmoidf(tensor_output[1][0]);
+  // float rightobstacle_prob = sigmoidf(tensor_output[2][0]);
+  
+  *l_prob = tensor_output[0][0];
+  *c_prob = tensor_output[1][0];
+  *r_prob = tensor_output[2][0];
+  
+
+  //printf("lo: %f, co: %f, ro: %f\n", tensor_output[0][0], tensor_output[1][0], tensor_output[2][0]);
+
+  //printf("l: %f, c: %f, r: %f\n", leftobstacle_prob, centerobstacle_prob, rightobstacle_prob);
+
+  
+
+  // Get the end time
+  gettimeofday(&end, NULL);
+  
+  // Calculate the elapsed time in microseconds
+  long elapsed = (end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec;
+  
+  // Print the elapsed time in microseconds
+  //printf("Elapsed time: %ld microseconds\n", elapsed);
+
 }
 
+
+
+
+
+  // float tensor_input[3][3][170][170] = {0};
+  
+  // float copy_tensor[3][170][170];
+
+  
+  // int nRows = cropped_image.rows;
+  // int nCols = cropped_image.cols;
+
+  // int i,j;
+  // uchar* p;
+  // for( i = 0; i < nRows; ++i)
+  // {
+  //     p = cropped_image.ptr<uchar>(i);
+  //     for ( j = 0; j < nCols; ++j)
+  //     {
+  //         copy_tensor[0][j][i] = (float)p[j] /255.0; // Check i, j order
+  //         copy_tensor[1][j][i] = (float)p[j+1] /255.0;
+  //         copy_tensor[2][j][i] = (float)p[j+2] /255.0;
+  //     }
+  // }
+
+  // printf("data: %f", copy_tensor[0][0][0]);
+
+  // printf("size: %d",sizeof (copy_tensor));
+
+  // memcpy(&tensor_input[0][0][0][0], &copy_tensor, sizeof (copy_tensor));
+  // memcpy(&tensor_input[1][0][0][0], &copy_tensor, sizeof (copy_tensor));
+  // memcpy(&tensor_input[2][0][0][0], &copy_tensor, sizeof (copy_tensor));
+  
 
 
 

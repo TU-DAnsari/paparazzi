@@ -248,6 +248,12 @@
       <field name="vel_sp" type="struct FloatVect3 *" unit="m/s"/>
     </message>
 
+    <message name="CNN_OBS" id="37">
+      <field name="prob_left" type="float"/>
+      <field name="prob_center" type="float"/>
+      <field name="prob_right" type="float"/>
+    </message>
+
   </msg_class>
 
 </protocol>
