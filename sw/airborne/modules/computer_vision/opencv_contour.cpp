@@ -129,7 +129,7 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
   
 
 
-  //cropped_image.setTo(cv::Scalar(255,255,255));
+  //cropped_image_mid.setTo(cv::Scalar(100,20,10));
 
   // if (!imwrite("/tmp/paparazzi/rgbrot.png", cropped_image)) {
   //     cout << "Failed to save the image" << endl;
@@ -150,7 +150,7 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
   
   int nRows = cropped_image_left.rows;
   int nCols = cropped_image_left.cols;
-
+  //printf("Ncols: %d", nCols);
   int i,j;
   uchar *pl, *pm, *pr;
   for( i = 0; i < nRows; i += 2)
@@ -161,18 +161,20 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
 
       for ( j = 0; j < nCols; j += 2)
       {
-          tensor_input[0][0][j/2][i/2] = (float)pl[j] /255.0; // Check i, j order
-          tensor_input[0][1][j/2][i/2] = (float)pl[j+1] /255.0;
-          tensor_input[0][2][j/2][i/2] = (float)pl[j+2] /255.0;
+          tensor_input[0][2][j/2][i/2] = (float)pl[(j*3)] /255.0; // Check i, j order
+          tensor_input[0][1][j/2][i/2] = (float)pl[(j*3)+1] /255.0;
+          tensor_input[0][0][j/2][i/2] = (float)pl[(j*3)+2] /255.0;
 
-          tensor_input[1][0][j/2][i/2] = (float)pm[j] /255.0; // Check i, j order
-          tensor_input[1][1][j/2][i/2] = (float)pm[j+1] /255.0;
-          tensor_input[1][2][j/2][i/2] = (float)pm[j+2] /255.0;
+          tensor_input[1][2][j/2][i/2] = (float)pm[(j*3)] /255.0; // Check i, j order
+          //printf("%f,", (float)pm[j] /255.0);
+          tensor_input[1][1][j/2][i/2] = (float)pm[(j*3)+1] /255.0;
+          tensor_input[1][0][j/2][i/2] = (float)pm[(j*3)+2] /255.0;
 
-          tensor_input[2][0][j/2][i/2] = (float)pr[j] /255.0; // Check i, j order
-          tensor_input[2][1][j/2][i/2] = (float)pr[j+1] /255.0;
-          tensor_input[2][2][j/2][i/2] = (float)pr[j+2] /255.0;
+          tensor_input[2][2][j/2][i/2] = (float)pr[(j*3)] /255.0; // Check i, j order
+          tensor_input[2][1][j/2][i/2] = (float)pr[(j*3)+1] /255.0;
+          tensor_input[2][0][j/2][i/2] = (float)pr[(j*3)+2] /255.0;
       }
+      //printf("endj: %d", j);
   }
 
   //printf("data: %f", copy_tensor[0][0][0]);
@@ -192,7 +194,7 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
 
   //cvtColor(M, M, CV_YUV2GRAY_Y422);
   float tensor_output[3][1];
-  memset(tensor_output, 0, sizeof tensor_output);
+  //memset(tensor_output, 0, sizeof tensor_output);
 
   struct timeval start, end;
   
@@ -216,7 +218,20 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
   //printf("daatain: %f, %f", tensor_input[0][0][0][0], tensor_input[1][0][0][0]);
   
   // printf("1: %f, %f\n", tensor_output[0][0], tensor_output[0][1]);
-  // printf("2: %f, %f\n", tensor_output[1][0], tensor_output[1][1]);
+  
+  // printf("i0: %f\n", tensor_input[1][0][0][0]);
+  // printf("i1: %f\n", tensor_input[1][1][0][0]);
+  // printf("i2: %f\n", tensor_input[1][2][0][0]);
+  
+  
+  // printf("i0: %f\n", tensor_input[1][0][50][50]);
+  // printf("i1: %f\n", tensor_input[1][1][50][50]);
+  // printf("i2: %f\n", tensor_input[1][2][50][50]);
+  
+  // printf("0: %f\n", tensor_output[0][0]);
+  // printf("1: %f\n", tensor_output[1][0]);
+  // printf("2: %f\n", tensor_output[2][0]);
+  // exit(0);
   // printf("3: %f, %f\n", tensor_output[2][0], tensor_output[2][1]);
   
   // float leftobstacle_prob = sigmoidf(tensor_output[0][0]);
