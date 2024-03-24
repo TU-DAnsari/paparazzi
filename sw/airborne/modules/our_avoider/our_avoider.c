@@ -80,6 +80,10 @@ float cornering_turn_rate = 1.6f;
 float k_outer = .4f;
 float k_inner = .6f;
 
+float cnn_p_left = 0.0f;
+float cnn_p_center = 0.0f;
+float cnn_p_right = 0.0f;
+
 // orange count in regions
 int16_t color_count_a = 0;
 int16_t color_count_b = 0; 
@@ -104,6 +108,39 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
   color_count_d = count_region_d;
 }
 
+#ifndef CNN_OBS_ID
+#define CNN_OBS_ID ABI_BROADCAST
+#endif
+static abi_event cnn_obs_ev;
+static void cnn_obs_cb(uint8_t __attribute__((unused)) sender_id,
+                       float prob_left,
+                       float prob_center,
+                       float prob_right)
+{
+  printf("recieved: l: %f, c: %f, r: %f", prob_left, prob_center, prob_right);
+  
+  cnn_p_left = prob_left;
+  cnn_p_center = prob_center;
+  cnn_p_right = prob_right;
+
+  if (cnn_p_center > 0.6f){
+      printf("Obstacle straight ahead! | ");
+      if (cnn_p_left < 0.5f || cnn_p_right < 0.5f){
+        if (cnn_p_left < cnn_p_right) {
+          printf("Turn left!\n");
+        }
+        else {
+          printf("Turn right!\n");
+        }
+      }
+
+      else
+        printf("Nowhere to go!, turn around!\n");
+    }
+    else printf("Fly straight!\n");
+  
+}
+
 
 void our_avoider_init(void)
 {
@@ -112,6 +149,8 @@ void our_avoider_init(void)
   xvel = safe_xvel;
   yvel = safe_yvel;
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+  AbiBindMsgCNN_OBS(CNN_OBS_ID, &cnn_obs_ev, cnn_obs_cb);
+
 }
 
 

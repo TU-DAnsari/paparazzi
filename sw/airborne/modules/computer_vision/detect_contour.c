@@ -44,23 +44,9 @@ struct image_t *contour_func(struct image_t *img, uint8_t camera_id)
     float r_prob = 0.0f;
   
     find_contour((char *) img->buf, img->w, img->h, &l_prob, &c_prob, &r_prob);
+    printf("sending: l: %f, c: %f, r: %f", l_prob, c_prob, r_prob);
   
-    if (c_prob > 0.6f){
-      printf("Obstacle straight ahead! | ");
-      if (l_prob < 0.5f || r_prob < 0.5f){
-        if (l_prob < r_prob) {
-          printf("Turn left!\n");
-        }
-        else {
-          printf("Turn right!\n");
-        }
-      }
 
-      else
-        printf("Nowhere to go!, turn around!\n");
-    }
-    else printf("Fly straight!\n");
-  
     AbiSendMsgCNN_OBS(CNN_OBS_CALC_ID, l_prob, c_prob, r_prob);
   
   }
