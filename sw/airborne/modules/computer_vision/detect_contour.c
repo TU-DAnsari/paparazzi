@@ -22,7 +22,7 @@
  * @author Roland Meertens and Peng Lu
  *
  */
-
+#include "modules/core/abi.h"
 #include "modules/computer_vision/cv.h"
 #include "modules/computer_vision/detect_contour.h"
 #include "modules/computer_vision/opencv_contour.h"
@@ -39,13 +39,37 @@ struct image_t *contour_func(struct image_t *img, uint8_t camera_id)
 
   if (img->type == IMAGE_YUV422) {
     // Call OpenCV (C++ from paparazzi C function)
-    find_contour((char *) img->buf, img->w, img->h);
+    float l_prob = 0.0f;
+    float c_prob = 0.0f;
+    float r_prob = 0.0f;
+  
+    find_contour((char *) img->buf, img->w, img->h, &l_prob, &c_prob, &r_prob);
+  
+    if (c_prob > 0.6f){
+      printf("Obstacle straight ahead! | ");
+      if (l_prob < 0.5f || r_prob < 0.5f){
+        if (l_prob < r_prob) {
+          printf("Turn left!\n");
+        }
+        else {
+          printf("Turn right!\n");
+        }
+      }
+
+      else
+        printf("Nowhere to go!, turn around!\n");
+    }
+    else printf("Fly straight!\n");
+  
+    AbiSendMsgCNN_OBS(CNN_OBS_CALC_ID, l_prob, c_prob, r_prob);
+  
   }
   return img;
 }
 
 void detect_contour_init(void)
 {
+  printf("detect contour init");
   cv_add_to_device(&DETECT_CONTOUR_CAMERA, contour_func, DETECT_CONTOUR_FPS, 0);
   // in the mavlab, bright
   cont_thres.lower_y = 16;  cont_thres.lower_u = 135; cont_thres.lower_v = 80;
