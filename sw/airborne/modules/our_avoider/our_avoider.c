@@ -228,8 +228,10 @@ void our_avoider_periodic(void)
   //FLOAT_ANGLE_NORMALIZE(heading);
   float heading_deg = DegOfRad(heading) - anglewrtEnu;
   if (heading_deg > 180){
-    heading_deg = 360 - heading_deg;
+    heading_deg = heading_deg - 360;
   }
+
+  printf("SLOW MODE: %d\n", slow_mode_enabled);
   
   // float headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
   // float heading_rate = computePIDheading(heading_deg, headingReq);
@@ -319,35 +321,42 @@ void our_avoider_periodic(void)
 
       // if inside inner bounds, obstacle avoidance
 
-      // if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
-      //   navigation_state = FRONTAL_OBSTACLE;
-      //   break;
-      // }
+    
 
-      if(cnn_p_center > 0.8) {
-        navigation_state = FRONTAL_OBSTACLE;
-        break;
+
+      if(slow_mode_enabled == 0) {
+        if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+          navigation_state = FRONTAL_OBSTACLE;
+          break;
+        }
+        float or_forward_velocity = (1 - of + 0.2) * xvel;
+        float or_lateral_velocity = (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * yvel;
+        float or_heading_rate =  (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * heading_turn_rate;
+
+        guidance_h_set_body_vel(or_forward_velocity, or_lateral_velocity);
+        guidance_h_set_heading_rate(or_heading_rate);
       }
-
-      float or_forward_velocity = (1 - of + 0.2) * xvel;
-      float or_lateral_velocity = (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * yvel;
-      float or_heading_rate =  (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * heading_turn_rate;
-
-      float ob_forward_velocity = (1 - (cnn_p_center)) * xvel;
-      // float ob_lateral_velocity = (cnn_p_left - cnn_p_right) * yvel;
-      float ob_heading_rate = 0.0f;
-      if (cnn_p_left < 0.1 && cnn_p_center > 0.5){
-        ob_heading_rate = -0.4f * heading_turn_rate;
-      }
-      if (cnn_p_right < 0.1 && cnn_p_center > 0.5){
-        ob_heading_rate = 0.4f * heading_turn_rate;
-      }
-
-      //float ob_heading_rate = (cnn_p_left - cnn_p_right) * heading_turn_rate;
       
 
-      guidance_h_set_body_vel(ob_forward_velocity, 0.0f);
-      guidance_h_set_heading_rate(ob_heading_rate);
+      if (slow_mode_enabled == 1) {
+        if(cnn_p_center > 0.8) {
+          navigation_state = FRONTAL_OBSTACLE;
+          break;  
+        }
+
+        float ob_forward_velocity = (1 - (cnn_p_center)) * xvel;
+        float ob_heading_rate = 0.0f;
+
+        if (cnn_p_left < 0.1 && cnn_p_center > 0.5){
+          ob_heading_rate = -0.4f * heading_turn_rate;
+        }
+        if (cnn_p_right < 0.1 && cnn_p_center > 0.5){
+          ob_heading_rate = 0.4f * heading_turn_rate;
+        }
+
+        guidance_h_set_body_vel(ob_forward_velocity, 0.0f);
+        guidance_h_set_heading_rate(ob_heading_rate);
+      } 
       break;
 
 
@@ -357,12 +366,18 @@ void our_avoider_periodic(void)
       guidance_h_set_body_vel(0, 0);
       guidance_h_set_heading_rate(heading_search_rate);
 
-      // if(of_b < 0.4f && of_c < 0.4f) {
-      //   navigation_state = SAFE;
-      // }
 
-      if(cnn_p_center < 0.5f) {
-        navigation_state = SAFE;
+      if(slow_mode_enabled == 0) {
+        if(of_b < 0.4f && of_c < 0.4f) {
+          navigation_state = SAFE;
+        }
+      }
+
+
+      if(slow_mode_enabled == 1) {
+        if(cnn_p_center < 0.5f) {
+          navigation_state = SAFE;
+        }
       }
 
       break;
