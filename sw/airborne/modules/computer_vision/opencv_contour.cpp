@@ -40,8 +40,9 @@
 // #include "MobileTinyv3.h"
 // #include "MobileNetTinyTrained.h"
 // #include "MobileNetTinyv5Trained.h"
-#include "MobileNetTinyv6Trained.h"
+// #include "MobileNetTinyv6Trained.h"
 // #include "MobileNetTinyv6TrainedSim.h"
+#include "MobileNetTinyv7Trained.h"
 
 #include "lib/vision/image.h"
 #include <sys/time.h>

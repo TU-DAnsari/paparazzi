@@ -117,3 +117,11 @@ Block tot classifier: Execution time: 0.013583 seconds
 Block classifier: Execution time: 0.000233 seconds
 Obstacle straight ahead! | Nowhere to go!, turn around!
 Elapsed time: 16549 microseconds
+
+
+
+v6 op drone:
+230680 microseconds
+
+v7 op drone:
+183558 microseconds
