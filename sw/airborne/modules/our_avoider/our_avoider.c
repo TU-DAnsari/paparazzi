@@ -31,7 +31,7 @@
 #include "generated/flight_plan.h"
 #include "../../boards/ardrone2.h"
 
-#define ORANGE_AVOIDER_VERBOSE FALSE
+#define ORANGE_AVOIDER_VERBOSE TRUE
 
 #define PRINT(string,...) fprintf(stderr, "[orange_avoider->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
 #if ORANGE_AVOIDER_VERBOSE
@@ -55,6 +55,8 @@ enum navigation_state_t {
   LEFT_LINE
 };
 
+// module settings
+int slow_mode_enabled = 0;
 
 // arena settings
 float OUTER_BOUNDS = 3.2f;
@@ -63,12 +65,21 @@ float SAFE_BOUNDS = 2.3f;
 float anglewrtEnu = -35;
 
 // avoidance velocity settings
-float safe_xvel = .2f;
+// float safe_xvel = .5f;
 float unsafe_xvel = .1f;
-float safe_yvel = .2f;
+// float safe_yvel = .5f;
 float unsafe_yvel = .1f;
 float heading_turn_rate = 2.f;
 float heading_search_rate = 0.5f;
+
+// Global settings - changable in gcs
+float slow_mode_safe_xvel = .2f;
+float slow_mode_safe_yvel = .2f;
+
+float fast_mode_safe_xvel = .5f;
+float fast_mode_safe_yvel = .5f;
+
+
 float xvel;
 float yvel;
 
@@ -83,6 +94,12 @@ float k_inner = .6f;
 float cnn_p_left = 0.0f;
 float cnn_p_center = 0.0f;
 float cnn_p_right = 0.0f;
+
+#define MOVING_AVERAGE_SIZE 4
+
+float cnn_n_prev_prob_left[MOVING_AVERAGE_SIZE] = {0.0f};
+float cnn_n_prev_prob_center[MOVING_AVERAGE_SIZE] = {0.0f};
+float cnn_n_prev_prob_right[MOVING_AVERAGE_SIZE] = {0.0f};
 
 // orange count in regions
 int16_t color_count_a = 0;
@@ -108,6 +125,23 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
   color_count_d = count_region_d;
 }
 
+// Assumes length MOVING_AVERAGE_SIZE
+void move_data_back(float f_array[MOVING_AVERAGE_SIZE]){
+  for (int i = 0; i < MOVING_AVERAGE_SIZE-1; i++){
+    f_array[i+1] = f_array[i];
+  }
+}
+
+// Assumes length MOVING_AVERAGE_SIZE
+float array_weighted_moving_average(float f_array[MOVING_AVERAGE_SIZE]){
+  float wma = 0.0f;
+  for (int i = 0; i < MOVING_AVERAGE_SIZE; i++){
+      wma += f_array[i]*(MOVING_AVERAGE_SIZE-i);
+  }
+  wma /= (MOVING_AVERAGE_SIZE*(MOVING_AVERAGE_SIZE+1)/2);
+  return wma;
+}
+
 #ifndef CNN_OBS_ID
 #define CNN_OBS_ID ABI_BROADCAST
 #endif
@@ -117,11 +151,24 @@ static void cnn_obs_cb(uint8_t __attribute__((unused)) sender_id,
                        float prob_center,
                        float prob_right)
 {
-  printf("recieved: l: %f, c: %f, r: %f", prob_left, prob_center, prob_right);
   
-  cnn_p_left = prob_left;
-  cnn_p_center = prob_center;
-  cnn_p_right = prob_right;
+
+  move_data_back(cnn_n_prev_prob_left);
+  cnn_n_prev_prob_left[0] = prob_left;
+  
+  move_data_back(cnn_n_prev_prob_center);
+  cnn_n_prev_prob_center[0] = prob_center;
+
+  move_data_back(cnn_n_prev_prob_right);
+  cnn_n_prev_prob_right[0] = prob_right;
+
+  cnn_p_left = array_weighted_moving_average(cnn_n_prev_prob_left);
+  cnn_p_center = array_weighted_moving_average(cnn_n_prev_prob_center);
+  cnn_p_right = array_weighted_moving_average(cnn_n_prev_prob_right);
+
+  printf("recieved: l: %f, c: %f, r: %f", cnn_p_left, cnn_p_center, cnn_p_right);
+  // const float testarr[5] = {0.0f,0.0f,0.0f,0.0f,1.0f};
+  // printf("Moving average: %f", array_weighted_moving_average(testarr));
 
 //   if (cnn_p_center > 0.6f){
 //       printf("Obstacle straight ahead! | ");
@@ -145,8 +192,8 @@ void our_avoider_init(void)
 {
   srand(time(NULL));
 
-  xvel = safe_xvel;
-  yvel = safe_yvel;
+  xvel = fast_mode_safe_xvel;
+  yvel = fast_mode_safe_yvel;
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
   AbiBindMsgCNN_OBS(CNN_OBS_ID, &cnn_obs_ev, cnn_obs_cb);
 
@@ -160,6 +207,8 @@ void our_avoider_periodic(void)
     navigation_state = SAFE;
     return;
   }
+
+  //printf("slow mode enabled: %d", slow_mode_enabled);
 
   float region_size = front_camera.output_size.w / 3 * front_camera.output_size.h / 4; 
   float slice_size = front_camera.output_size.w / 3 * front_camera.output_size.h; 
@@ -186,18 +235,18 @@ void our_avoider_periodic(void)
   // float heading_rate = computePIDheading(heading_deg, headingReq);
   
 
-  VERBOSE_PRINT("\n");
-  VERBOSE_PRINT("of: %f\n", of); 
-  VERBOSE_PRINT("of a: %f\n", of_a); 
-  VERBOSE_PRINT("of b: %f\n", of_b);
-  VERBOSE_PRINT("of c: %f\n", of_c);
-  VERBOSE_PRINT("of d: %f\n", of_d);
-  VERBOSE_PRINT("\n");
-  VERBOSE_PRINT("p left: %f\n", cnn_p_left); 
-  VERBOSE_PRINT("p center: %f\n", cnn_p_center); 
-  VERBOSE_PRINT("p right: %f\n", cnn_p_right);
-  VERBOSE_PRINT("position (x, y): %f, %f\n", newx, newy); 
-  VERBOSE_PRINT("heading (deg): %f\n", heading_deg);
+  // VERBOSE_PRINT("\n");
+  // VERBOSE_PRINT("of: %f\n", of); 
+  // VERBOSE_PRINT("of a: %f\n", of_a); 
+  // VERBOSE_PRINT("of b: %f\n", of_b);
+  // VERBOSE_PRINT("of c: %f\n", of_c);
+  // VERBOSE_PRINT("of d: %f\n", of_d);
+  // VERBOSE_PRINT("\n");
+  // VERBOSE_PRINT("p left: %f\n", cnn_p_left); 
+  // VERBOSE_PRINT("p center: %f\n", cnn_p_center); 
+  // VERBOSE_PRINT("p right: %f\n", cnn_p_right);
+  // VERBOSE_PRINT("position (x, y): %f, %f\n", newx, newy); 
+  // VERBOSE_PRINT("heading (deg): %f\n", heading_deg);
 
   // VERBOSE_PRINT("Heading REQ: %f heading diff: %f heading rate: %f\n", headingReq, headingReq-heading_deg, heading_rate);
 
@@ -255,8 +304,14 @@ void our_avoider_periodic(void)
       }
 
       if (fabsf(newx) < SAFE_BOUNDS && fabsf(newy) < SAFE_BOUNDS) {
-        xvel = safe_xvel;
-        yvel = safe_yvel;
+        if (slow_mode_enabled == 1){
+          xvel = slow_mode_safe_xvel;
+          yvel = slow_mode_safe_yvel;
+        }
+        else {
+          xvel = fast_mode_safe_xvel;
+          yvel = fast_mode_safe_yvel;
+        }
       } else {
         xvel = unsafe_xvel;
         yvel = unsafe_yvel;
@@ -278,12 +333,20 @@ void our_avoider_periodic(void)
       float or_lateral_velocity = (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * yvel;
       float or_heading_rate =  (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * heading_turn_rate;
 
-      float ob_forward_velocity = (1 - (cnn_p_left + cnn_p_center + cnn_p_right) / 3) * xvel;
-      float ob_lateral_velocity = (cnn_p_left - cnn_p_right) * yvel;
-      float ob_heading_rate = (cnn_p_left - cnn_p_right) * heading_turn_rate;
+      float ob_forward_velocity = (1 - (cnn_p_center)) * xvel;
+      // float ob_lateral_velocity = (cnn_p_left - cnn_p_right) * yvel;
+      float ob_heading_rate = 0.0f;
+      if (cnn_p_left < 0.1 && cnn_p_center > 0.5){
+        ob_heading_rate = -0.4f * heading_turn_rate;
+      }
+      if (cnn_p_right < 0.1 && cnn_p_center > 0.5){
+        ob_heading_rate = 0.4f * heading_turn_rate;
+      }
+
+      //float ob_heading_rate = (cnn_p_left - cnn_p_right) * heading_turn_rate;
       
 
-      guidance_h_set_body_vel(ob_forward_velocity, ob_lateral_velocity);
+      guidance_h_set_body_vel(ob_forward_velocity, 0.0f);
       guidance_h_set_heading_rate(ob_heading_rate);
       break;
 
@@ -298,7 +361,7 @@ void our_avoider_periodic(void)
       //   navigation_state = SAFE;
       // }
 
-      if(cnn_p_center < 0.8f) {
+      if(cnn_p_center < 0.5f) {
         navigation_state = SAFE;
       }
 

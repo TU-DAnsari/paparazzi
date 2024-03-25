@@ -15,6 +15,14 @@
 
 extern float floor_count_frac;
 
+extern float slow_mode_safe_xvel;
+extern float slow_mode_safe_yvel;
+
+extern float fast_mode_safe_xvel;
+extern float fast_mode_safe_yvel;
+
+extern int slow_mode_enabled;
+
 extern void our_avoider_init(void);
 extern void our_avoider_periodic(void);
 

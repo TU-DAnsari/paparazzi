@@ -40,8 +40,8 @@
 // #include "MobileTinyv3.h"
 // #include "MobileNetTinyTrained.h"
 // #include "MobileNetTinyv5Trained.h"
-// #include "MobileNetTinyv6Trained.h"
-#include "MobileNetTinyv6TrainedSim.h"
+#include "MobileNetTinyv6Trained.h"
+// #include "MobileNetTinyv6TrainedSim.h"
 
 #include "lib/vision/image.h"
 #include <sys/time.h>
@@ -54,11 +54,11 @@ struct contour_threshold cont_thres;
 
 RNG rng(12345);
 
-#define EULER_NUMBER_F 2.71828182846
+// #define EULER_NUMBER_F 2.71828182846
 
-float sigmoidf(float n) {
-    return (1 / (1 + powf(EULER_NUMBER_F, -n)));
-}
+// float sigmoidf(float n) {
+//     return (1 / (1 + powf(EULER_NUMBER_F, -n)));
+// }
 
 // YUV in opencv convert to YUV on Bebop
 void yuv_opencv_to_yuv422(Mat image, char *img, int width, int height)
@@ -102,13 +102,10 @@ void uyvy_opencv_to_yuv_opencv(Mat image, Mat image_in, int width, int height)
 
 void find_contour(char *img, int width, int height, float *l_prob, float *c_prob, float *r_prob)
 {
-
-
-  struct timeval start_pre, end_pre;
+  struct timeval start, end, end_pre;
   
   // Get the start time
-  gettimeofday(&start_pre, NULL);
-
+  gettimeofday(&start, NULL);
 
   // Transform image buffer img into an OpenCV YUV422 Mat
   Mat M (height, width, CV_8UC2, img);
@@ -116,9 +113,6 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
   Mat image(height, width, CV_8UC3);
   Mat image_rotated;
   cvtColor (M, image, CV_YUV2BGR_Y422);
-
-  // cvtColor (image, grey, COLOR_BGR2GRAY);
-  
 
   rotate(image, image_rotated, cv::ROTATE_90_COUNTERCLOCKWISE);
   // 0, 35, 170, 205)))\n",
@@ -136,18 +130,8 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
   //     cout << "Failed to save the image" << endl;
   // }
 
-  
-
-  //cropped_image.convertTo(cropped_image, CV_32FC3, 1/255.0);
-
-
   // Creating the tensor array
   float tensor_input[3][3][85][85];
-  
-  // memset(&tensor_input[0][0][0][0], 1, sizeof(float) * 3*3*85*85);
-
-  // float copy_tensor[3][85][85];
-
   
   int nRows = cropped_image_left.rows;
   int nCols = cropped_image_left.cols;
@@ -162,45 +146,36 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
 
       for ( j = 0; j < nCols; j += 2)
       {
-          tensor_input[0][2][j/2][i/2] = (float)pl[(j*3)] /255.0; // Check i, j order
-          tensor_input[0][1][j/2][i/2] = (float)pl[(j*3)+1] /255.0;
-          tensor_input[0][0][j/2][i/2] = (float)pl[(j*3)+2] /255.0;
+          tensor_input[0][2][i/2][j/2] = (float)pl[(j*3)] /255.0;
+          tensor_input[0][1][i/2][j/2] = (float)pl[(j*3)+1] /255.0;
+          tensor_input[0][0][i/2][j/2] = (float)pl[(j*3)+2] /255.0;
 
-          tensor_input[1][2][j/2][i/2] = (float)pm[(j*3)] /255.0; // Check i, j order
+          tensor_input[1][2][i/2][j/2] = (float)pm[(j*3)] /255.0;
           //printf("%f,", (float)pm[j] /255.0);
-          tensor_input[1][1][j/2][i/2] = (float)pm[(j*3)+1] /255.0;
-          tensor_input[1][0][j/2][i/2] = (float)pm[(j*3)+2] /255.0;
+          tensor_input[1][1][i/2][j/2] = (float)pm[(j*3)+1] /255.0;
+          tensor_input[1][0][i/2][j/2] = (float)pm[(j*3)+2] /255.0;
 
-          tensor_input[2][2][j/2][i/2] = (float)pr[(j*3)] /255.0; // Check i, j order
-          tensor_input[2][1][j/2][i/2] = (float)pr[(j*3)+1] /255.0;
-          tensor_input[2][0][j/2][i/2] = (float)pr[(j*3)+2] /255.0;
+          tensor_input[2][2][i/2][j/2] = (float)pr[(j*3)] /255.0;
+          tensor_input[2][1][i/2][j/2] = (float)pr[(j*3)+1] /255.0;
+          tensor_input[2][0][i/2][j/2] = (float)pr[(j*3)+2] /255.0;
       }
       //printf("endj: %d", j);
   }
-
-  //printf("data: %f", copy_tensor[0][0][0]);
-
-  //printf("size: %d",sizeof (copy_tensor));
-
-  // memcpy(&tensor_input[0][0][0][0], &copy_tensor, sizeof (copy_tensor));
-  // memcpy(&tensor_input[1][0][0][0], &copy_tensor, sizeof (copy_tensor));
-  // memcpy(&tensor_input[2][0][0][0], &copy_tensor, sizeof (copy_tensor));
-  
   // Get the end time
   gettimeofday(&end_pre, NULL);
   
   // Calculate the elapsed time in microseconds
-  long elapsed_pre = (end_pre.tv_sec - start_pre.tv_sec) * 1000000 + end_pre.tv_usec - start_pre.tv_usec;
+  // long elapsed_pre = (end_pre.tv_sec - start_pre.tv_sec) * 1000000 + end_pre.tv_usec - start_pre.tv_usec;
   //printf("Elapsed time, image moving: %ld microseconds\n", elapsed_pre);
 
   //cvtColor(M, M, CV_YUV2GRAY_Y422);
   float tensor_output[3][1];
   //memset(tensor_output, 0, sizeof tensor_output);
 
-  struct timeval start, end;
+  // struct timeval start, end;
   
-  // Get the start time
-  gettimeofday(&start, NULL);
+  // // Get the start time
+  // gettimeofday(&start, NULL);
   
 //   printf("in: %f", tensor_input[0][0][0][0]);
 //   printf("in: %f", tensor_input[2][2][84][84]);
@@ -215,7 +190,10 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
 //     }
 // }
 
+  // Run CNN
   entry(tensor_input, tensor_output);
+  
+  
   //printf("daatain: %f, %f", tensor_input[0][0][0][0], tensor_input[1][0][0][0]);
   
   // printf("1: %f, %f\n", tensor_output[0][0], tensor_output[0][1]);
@@ -257,45 +235,9 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
   long elapsed = (end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec;
   
   // Print the elapsed time in microseconds
-  //printf("Elapsed time: %ld microseconds\n", elapsed);
+  printf("Elapsed time: %ld microseconds\n", elapsed);
 
 }
-
-
-
-
-
-  // float tensor_input[3][3][170][170] = {0};
-  
-  // float copy_tensor[3][170][170];
-
-  
-  // int nRows = cropped_image.rows;
-  // int nCols = cropped_image.cols;
-
-  // int i,j;
-  // uchar* p;
-  // for( i = 0; i < nRows; ++i)
-  // {
-  //     p = cropped_image.ptr<uchar>(i);
-  //     for ( j = 0; j < nCols; ++j)
-  //     {
-  //         copy_tensor[0][j][i] = (float)p[j] /255.0; // Check i, j order
-  //         copy_tensor[1][j][i] = (float)p[j+1] /255.0;
-  //         copy_tensor[2][j][i] = (float)p[j+2] /255.0;
-  //     }
-  // }
-
-  // printf("data: %f", copy_tensor[0][0][0]);
-
-  // printf("size: %d",sizeof (copy_tensor));
-
-  // memcpy(&tensor_input[0][0][0][0], &copy_tensor, sizeof (copy_tensor));
-  // memcpy(&tensor_input[1][0][0][0], &copy_tensor, sizeof (copy_tensor));
-  // memcpy(&tensor_input[2][0][0][0], &copy_tensor, sizeof (copy_tensor));
-  
-
-
 
 
 

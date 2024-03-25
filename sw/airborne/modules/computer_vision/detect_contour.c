@@ -44,7 +44,7 @@ struct image_t *contour_func(struct image_t *img, uint8_t camera_id)
     float r_prob = 0.0f;
   
     find_contour((char *) img->buf, img->w, img->h, &l_prob, &c_prob, &r_prob);
-    printf("sending: l: %f, c: %f, r: %f", l_prob, c_prob, r_prob);
+    //printf("sending: l: %f, c: %f, r: %f", l_prob, c_prob, r_prob);
   
 
     AbiSendMsgCNN_OBS(CNN_OBS_CALC_ID, l_prob, c_prob, r_prob);
