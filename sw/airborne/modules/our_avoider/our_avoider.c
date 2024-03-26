@@ -74,16 +74,27 @@ float heading_turn_rate = 2.f;
 float heading_search_rate = 0.5f;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 // Global settings - changable in gcs
 float slow_mode_safe_xvel = .35f;
 float slow_mode_safe_yvel = .35f;
 =======
+=======
+>>>>>>> 7d7fe8ccb (geklooi)
 float cnn_w_avg = 0.f;
 float cnn_sum_r = 0.f;
 float cnn_sum_l = 0.f;
 float spx = 0.0f;
 float spy = 0.0f;
+<<<<<<< HEAD
 >>>>>>> 2a5132467 (tune flight using CNN avoidance)
+=======
+=======
+// Global settings - changable in gcs
+float slow_mode_safe_xvel = .35f;
+float slow_mode_safe_yvel = .35f;
+>>>>>>> 2ab715b13 (geklooi)
+>>>>>>> 7d7fe8ccb (geklooi)
 
 // Global settings - changable in gcs
 float slow_mode_safe_xvel = .4f;
