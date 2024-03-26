@@ -47,6 +47,7 @@ float computePIDheading(float droneheading, float targetheading);
 enum navigation_state_t {
   SAFE,
   FRONTAL_OBSTACLE,
+  SEARCH_HEADING,
   SEARCH_FOR_SAFE_HEADING,
   OUT_OF_BOUNDS,
   TOP_LINE,
@@ -56,28 +57,39 @@ enum navigation_state_t {
 };
 
 // module settings
-int slow_mode_enabled = 0;
+int slow_mode_enabled = 1;
 
 // arena settings
 float OUTER_BOUNDS = 3.2f;
-float INNER_BOUNDS = 2.5f;
+float INNER_BOUNDS = 5.f;
 float SAFE_BOUNDS = 2.3f;
 float anglewrtEnu = -35;
 
 // avoidance velocity settings
 // float safe_xvel = .5f;
-float unsafe_xvel = .1f;
+float unsafe_xvel = .5f;
 // float safe_yvel = .5f;
-float unsafe_yvel = .1f;
+float unsafe_yvel = .5f;
 float heading_turn_rate = 2.f;
 float heading_search_rate = 0.5f;
 
+<<<<<<< HEAD
 // Global settings - changable in gcs
 float slow_mode_safe_xvel = .35f;
 float slow_mode_safe_yvel = .35f;
+=======
+float cnn_w_avg = 0.f;
+float cnn_sum_r = 0.f;
+float cnn_sum_l = 0.f;
+float spx = 0.0f;
+float spy = 0.0f;
+>>>>>>> 2a5132467 (tune flight using CNN avoidance)
 
-float fast_mode_safe_xvel = .5f;
-float fast_mode_safe_yvel = .5f;
+// Global settings - changable in gcs
+float slow_mode_safe_xvel = .4f;
+float slow_mode_safe_yvel = .4f;
+float fast_mode_safe_xvel = .4f;
+float fast_mode_safe_yvel = .4f;
 
 
 float xvel;
@@ -95,7 +107,7 @@ float cnn_p_left = 0.0f;
 float cnn_p_center = 0.0f;
 float cnn_p_right = 0.0f;
 
-#define MOVING_AVERAGE_SIZE 4
+#define MOVING_AVERAGE_SIZE 5
 
 float cnn_n_prev_prob_left[MOVING_AVERAGE_SIZE] = {0.0f};
 float cnn_n_prev_prob_center[MOVING_AVERAGE_SIZE] = {0.0f};
@@ -322,8 +334,6 @@ void our_avoider_periodic(void)
       // if inside inner bounds, obstacle avoidance
 
     
-
-
       if(slow_mode_enabled == 0) {
         if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
           navigation_state = FRONTAL_OBSTACLE;
@@ -339,23 +349,24 @@ void our_avoider_periodic(void)
       
 
       if (slow_mode_enabled == 1) {
-        if(cnn_p_center > 0.8) {
+        if((cnn_p_left > 0.8 && cnn_p_center > 0.6) || cnn_p_center > 0.75  || (cnn_p_right > 0.8 && cnn_p_center > 0.6)) {
           navigation_state = FRONTAL_OBSTACLE;
+          spx = newx;
+          spy = newy;
           break;  
         }
 
-        float ob_forward_velocity = (1 - (cnn_p_center)) * xvel;
-        float ob_heading_rate = 0.0f;
+        cnn_w_avg = (0.25 * cnn_p_left + 0.5 * cnn_p_center + 0.25 * cnn_p_right) / 3;
 
-        if (cnn_p_left < 0.1 && cnn_p_center > 0.5){
-          ob_heading_rate = -0.4f * heading_turn_rate;
-        }
-        if (cnn_p_right < 0.1 && cnn_p_center > 0.5){
-          ob_heading_rate = 0.4f * heading_turn_rate;
-        }
+        float ob_forward_velocity = (1 - cnn_w_avg) * xvel;
+        float ob_lateral_velocity = 0.4 * (cnn_p_left - cnn_p_right) * yvel;
+        float ob_heading_reate = 0.3 * (cnn_p_left - cnn_p_right) * heading_turn_rate;
 
-        guidance_h_set_body_vel(ob_forward_velocity, 0.0f);
-        guidance_h_set_heading_rate(ob_heading_rate);
+        cnn_sum_r += cnn_p_right;
+        cnn_sum_l += cnn_p_left;
+
+        guidance_h_set_body_vel(ob_forward_velocity, 0.f);
+        guidance_h_set_heading_rate(ob_heading_reate);
       } 
       break;
 
@@ -363,9 +374,29 @@ void our_avoider_periodic(void)
     case FRONTAL_OBSTACLE:
       VERBOSE_PRINT("STATE: FRONTAL_OBSTACLE\n");
       // stop
-      guidance_h_set_body_vel(0, 0);
-      guidance_h_set_heading_rate(heading_search_rate);
+      guidance_h_set_heading_rate(0.f);
+      
+      float dvx = spx - newx;
+      float dvy = spy - newy;
 
+      float drone_dvx = +cos(RadOfDeg(90 - heading_deg)) * dvx + sin(RadOfDeg(90 - heading_deg)) * dvy;
+      float drone_dvy = -sin(RadOfDeg(90 - heading_deg)) * dvx + cos(RadOfDeg(90 - heading_deg)) * dvy;
+
+      float dist = sqrt(powf(spx - newx, 2) + powf(spy - newy, 2));
+
+      guidance_h_set_body_vel(0.5 * drone_dvx, -0.5 * drone_dvy);
+      
+      printf("DISTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANCE: %f\n", dist);
+
+      if(dist < 0.2) {
+        guidance_h_set_body_vel(0.f, 0.f);
+        navigation_state = SEARCH_HEADING;
+      }
+      break;
+
+
+    case SEARCH_HEADING:
+      guidance_h_set_heading_rate(sign(cnn_sum_l - cnn_sum_r) * heading_search_rate);
 
       if(slow_mode_enabled == 0) {
         if(of_b < 0.4f && of_c < 0.4f) {
@@ -373,13 +404,13 @@ void our_avoider_periodic(void)
         }
       }
 
-
       if(slow_mode_enabled == 1) {
         if(cnn_p_center < 0.5f) {
           navigation_state = SAFE;
+          cnn_sum_r = 0.f;
+          cnn_sum_l = 0.f;
         }
       }
-
       break;
 
 
