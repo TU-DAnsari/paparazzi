@@ -73,28 +73,14 @@ float unsafe_yvel = .5f;
 float heading_turn_rate = 2.f;
 float heading_search_rate = 0.5f;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-// Global settings - changable in gcs
-float slow_mode_safe_xvel = .35f;
-float slow_mode_safe_yvel = .35f;
-=======
-=======
->>>>>>> 7d7fe8ccb (geklooi)
+
+
 float cnn_w_avg = 0.f;
 float cnn_sum_r = 0.f;
 float cnn_sum_l = 0.f;
 float spx = 0.0f;
 float spy = 0.0f;
-<<<<<<< HEAD
->>>>>>> 2a5132467 (tune flight using CNN avoidance)
-=======
-=======
-// Global settings - changable in gcs
-float slow_mode_safe_xvel = .35f;
-float slow_mode_safe_yvel = .35f;
->>>>>>> 2ab715b13 (geklooi)
->>>>>>> 7d7fe8ccb (geklooi)
+
 
 // Global settings - changable in gcs
 float slow_mode_safe_xvel = .4f;
@@ -189,7 +175,7 @@ static void cnn_obs_cb(uint8_t __attribute__((unused)) sender_id,
   cnn_p_center = array_weighted_moving_average(cnn_n_prev_prob_center);
   cnn_p_right = array_weighted_moving_average(cnn_n_prev_prob_right);
 
-  printf("recieved: l: %f, c: %f, r: %f", cnn_p_left, cnn_p_center, cnn_p_right);
+  // printf("recieved: l: %f, c: %f, r: %f", cnn_p_left, cnn_p_center, cnn_p_right);
   // const float testarr[5] = {0.0f,0.0f,0.0f,0.0f,1.0f};
   // printf("Moving average: %f", array_weighted_moving_average(testarr));
 
@@ -254,7 +240,7 @@ void our_avoider_periodic(void)
     heading_deg = heading_deg - 360;
   }
 
-  printf("SLOW MODE: %d\n", slow_mode_enabled);
+  // printf("SLOW MODE: %d\n", slow_mode_enabled);
   
   // float headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
   // float heading_rate = computePIDheading(heading_deg, headingReq);
@@ -397,7 +383,7 @@ void our_avoider_periodic(void)
 
       guidance_h_set_body_vel(0.5 * drone_dvx, -0.5 * drone_dvy);
       
-      printf("DISTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANCE: %f\n", dist);
+      // printf("DISTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANCE: %f\n", dist);
 
       if(dist < 0.2) {
         guidance_h_set_body_vel(0.f, 0.f);
@@ -623,5 +609,5 @@ float computePIDheading(float droneheading, float targetheading) {
   return output;
 }
 
-int printf("IN THE FUNC droneheading: %f targetheading: %f\n", droneheading, targetheading);
+// int printf("IN THE FUNC droneheading: %f targetheading: %f\n", droneheading, targetheading);
   // PRINT("IN THE FUNC error: %f\n", error);
