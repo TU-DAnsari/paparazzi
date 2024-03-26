@@ -78,18 +78,23 @@ float unsafe_yvel = .5f;
 float heading_turn_rate = 2.f;
 float heading_search_rate = 0.5f;
 
+<<<<<<< HEAD
+// Global settings - changable in gcs
+float slow_mode_safe_xvel = .35f;
+float slow_mode_safe_yvel = .35f;
+=======
 float cnn_w_avg = 0.f;
 float cnn_sum_r = 0.f;
 float cnn_sum_l = 0.f;
 float spx = 0.0f;
 float spy = 0.0f;
+>>>>>>> 2a5132467 (tune flight using CNN avoidance)
 
 // Global settings - changable in gcs
-float slow_mode_safe_xvel = .35f;
-float slow_mode_safe_yvel = .35f;
-
-float fast_mode_safe_xvel = .5f;
-float fast_mode_safe_yvel = .5f;
+float slow_mode_safe_xvel = .4f;
+float slow_mode_safe_yvel = .4f;
+float fast_mode_safe_xvel = .4f;
+float fast_mode_safe_yvel = .4f;
 
 
 float xvel;
@@ -391,6 +396,29 @@ void our_avoider_periodic(void)
     case FRONTAL_OBSTACLE:
       VERBOSE_PRINT("STATE: FRONTAL_OBSTACLE\n");
       // stop
+      guidance_h_set_heading_rate(0.f);
+      
+      float dvx = spx - newx;
+      float dvy = spy - newy;
+
+      float drone_dvx = +cos(RadOfDeg(90 - heading_deg)) * dvx + sin(RadOfDeg(90 - heading_deg)) * dvy;
+      float drone_dvy = -sin(RadOfDeg(90 - heading_deg)) * dvx + cos(RadOfDeg(90 - heading_deg)) * dvy;
+
+      float dist = sqrt(powf(spx - newx, 2) + powf(spy - newy, 2));
+
+      guidance_h_set_body_vel(0.5 * drone_dvx, -0.5 * drone_dvy);
+      
+      printf("DISTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANCE: %f\n", dist);
+
+      if(dist < 0.2) {
+        guidance_h_set_body_vel(0.f, 0.f);
+        navigation_state = SEARCH_HEADING;
+      }
+      break;
+
+
+    case SEARCH_HEADING:
+      guidance_h_set_heading_rate(sign(cnn_sum_l - cnn_sum_r) * heading_search_rate);
       guidance_h_set_heading_rate(0.f);
       
       float dvx = spx - newx;
