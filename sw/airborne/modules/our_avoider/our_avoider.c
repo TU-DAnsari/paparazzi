@@ -73,8 +73,8 @@ float heading_turn_rate = 2.f;
 float heading_search_rate = 0.5f;
 
 // Global settings - changable in gcs
-float slow_mode_safe_xvel = .2f;
-float slow_mode_safe_yvel = .2f;
+float slow_mode_safe_xvel = .35f;
+float slow_mode_safe_yvel = .35f;
 
 float fast_mode_safe_xvel = .5f;
 float fast_mode_safe_yvel = .5f;
@@ -84,8 +84,8 @@ float xvel;
 float yvel;
 
 float cornering_xvel = 0.1f;
-float cornering_yvel = 0.5f;
-float cornering_turn_rate = 1.6f;
+float cornering_yvel = 0.35f;
+float cornering_turn_rate = 2.2f;
 
 // yaw rate proportional factors
 float k_outer = .4f;
@@ -554,7 +554,8 @@ float computePIDheading(float droneheading, float targetheading) {
     return 0.0;
   }
 
-  //VERBOSE_PRINT("IN THE FUNC droneheading: %f targetheading: %f\n", droneheading, targetheading);
+  VERBOSE_PRINT("IN THE FUNC droneheading: %f targetheading: %f\n", droneheading, targetheading);
+  VERBOSE_PRINT("IN THE FUNC error: %f\n", (targetheading-droneheading));
 
   // will tune the pid controller once waypoints are here
   float KP_h = 0.5;     // Proportional gain
@@ -575,6 +576,10 @@ float computePIDheading(float droneheading, float targetheading) {
   double output = P + I + D;
 
   last_error = error;
+
   // output should be the yaw rate
   return output;
 }
+
+int printf("IN THE FUNC droneheading: %f targetheading: %f\n", droneheading, targetheading);
+  // PRINT("IN THE FUNC error: %f\n", error);
