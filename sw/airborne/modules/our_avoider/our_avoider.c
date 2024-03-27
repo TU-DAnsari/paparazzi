@@ -406,6 +406,14 @@ void our_avoider_periodic(void)
 
     case TOP_LINE:
       VERBOSE_PRINT("STATE: TOP_LINE\n");
+      if(cnn_p_center > 0.8) {
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+        break;  
+      } else if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+        break;
+      }
+      
       if(newy >= OUTER_BOUNDS && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))) {
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 0 && heading_deg <=110) {
@@ -428,14 +436,22 @@ void our_avoider_periodic(void)
 
     case RIGHT_LINE:
       VERBOSE_PRINT("STATE: RIGHT_LINE\n");
+      if(cnn_p_center > 0.8) {
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+        break;  
+      } else if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+        break;
+      }
+      
       if(newx >= OUTER_BOUNDS && 0 <= heading_deg && heading_deg <= 180) {
           navigation_state = OUT_OF_BOUNDS;
-      } else if(heading_deg >= 90 && heading_deg <=180) {
+      } else if((heading_deg >= 90 && heading_deg <=180) || (heading_deg >= -180 && heading_deg <=-160)) {
         //turn right
         guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
         guidance_h_set_heading_rate(cornering_turn_rate);
         navigation_state = SAFE;
-      } else if (heading_deg <= 90 && heading_deg >= 0) {
+      } else if  ((heading_deg <= 90 && heading_deg >= 0) || (heading_deg >= -20 && heading_deg <= 0))  {
         //turn left
         guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
         guidance_h_set_heading_rate(-cornering_turn_rate);
@@ -450,6 +466,14 @@ void our_avoider_periodic(void)
 
     case BOTTOM_LINE:
       VERBOSE_PRINT("STATE: BOTTOM_LINE\n");
+      if(cnn_p_center > 0.8) {
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+        break;  
+      } else if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+        break;
+      }
+      
       if(newy <= -OUTER_BOUNDS && ((90 <= heading_deg  && heading_deg <= 180) || (-180 <= heading_deg && heading_deg <= -90))) {
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -180 && heading_deg <=-70) {
@@ -472,14 +496,22 @@ void our_avoider_periodic(void)
 
     case LEFT_LINE:
       VERBOSE_PRINT("STATE: LEFT_LINE\n");
+      if(cnn_p_center > 0.8) {
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+        break;  
+      } else if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+        navigation_state = SEARCH_FOR_SAFE_HEADING;
+        break;
+      }
+      
       if(newx <= -OUTER_BOUNDS && -180 <= heading_deg && heading_deg <= 0) {
           navigation_state = OUT_OF_BOUNDS;
-      } else if(heading_deg >= -90 && heading_deg <=0) {
+      } else if((heading_deg >= -90 && heading_deg <=0)  || (heading_deg >= 0 && heading_deg <= 20)){
         //turn right
         guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
         guidance_h_set_heading_rate(cornering_turn_rate);
         navigation_state = SAFE;
-      } else if (heading_deg <= -90 && heading_deg >= -180) {
+      } else if ((heading_deg <= -90 && heading_deg >= -180) || (heading_deg >= 160 && heading_deg <=180)) {
         //turn left
         guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
         guidance_h_set_heading_rate(-cornering_turn_rate);
