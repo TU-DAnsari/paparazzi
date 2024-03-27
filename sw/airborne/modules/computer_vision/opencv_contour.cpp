@@ -43,7 +43,9 @@
 // #include "MobileNetTinyv6Trained.h"
 // #include "MobileNetTinyv6TrainedSim.h"
 // #include "MobileNetTinyv7Trained.h"
-#include "MobileNetTinyv8Trained.h"
+// #include "MobileNetTinyv8Trained.h"
+#include "MobileNetTinyv8CombiTrained.h"
+
 
 #include "lib/vision/image.h"
 #include <sys/time.h>
@@ -53,6 +55,7 @@ using namespace std;
 
 struct contour_estimation cont_est;
 struct contour_threshold cont_thres;
+
 
 RNG rng(12345);
 
@@ -102,7 +105,7 @@ void uyvy_opencv_to_yuv_opencv(Mat image, Mat image_in, int width, int height)
   }
 }
 
-void find_contour(char *img, int width, int height, float *l_prob, float *c_prob, float *r_prob)
+void find_contour(char *img, int width, int height, float *l_prob, float *c_prob, float *r_prob, float combined_model)
 {
   struct timeval start, end, end_pre;
   
@@ -193,9 +196,10 @@ void find_contour(char *img, int width, int height, float *l_prob, float *c_prob
 // }
 
   // Run CNN
+  // if (combined_model == 1)
+  //   entry_combi(tensor_input, tensor_output);
+  // else
   entry(tensor_input, tensor_output);
-  
-  
   //printf("daatain: %f, %f", tensor_input[0][0][0][0], tensor_input[1][0][0][0]);
   
   // printf("1: %f, %f\n", tensor_output[0][0], tensor_output[0][1]);

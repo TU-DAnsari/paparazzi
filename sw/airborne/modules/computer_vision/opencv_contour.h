@@ -44,7 +44,8 @@ struct contour_threshold {
 extern struct contour_estimation cont_est;
 extern struct contour_threshold cont_thres;
 
-void find_contour(char *img, int width, int height, float *l_prob, float *c_prob, float *r_prob);
+
+void find_contour(char *img, int width, int height, float *l_prob, float *c_prob, float *r_prob, float combined_model);
 
 #ifdef __cplusplus
 }

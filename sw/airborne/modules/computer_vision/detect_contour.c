@@ -32,6 +32,8 @@
 #endif
 PRINT_CONFIG_VAR(DETECT_CONTOUR_FPS)
 
+float combined_model = 1;
+
 // Function
 struct image_t *contour_func(struct image_t *img, uint8_t camera_id);
 struct image_t *contour_func(struct image_t *img, uint8_t camera_id)
@@ -43,7 +45,7 @@ struct image_t *contour_func(struct image_t *img, uint8_t camera_id)
     float c_prob = 0.0f;
     float r_prob = 0.0f;
   
-    find_contour((char *) img->buf, img->w, img->h, &l_prob, &c_prob, &r_prob);
+    find_contour((char *) img->buf, img->w, img->h, &l_prob, &c_prob, &r_prob, combined_model);
     //printf("sending: l: %f, c: %f, r: %f", l_prob, c_prob, r_prob);
   
 
@@ -60,6 +62,9 @@ void detect_contour_init(void)
   // in the mavlab, bright
   cont_thres.lower_y = 16;  cont_thres.lower_u = 135; cont_thres.lower_v = 80;
   cont_thres.upper_y = 100; cont_thres.upper_u = 175; cont_thres.upper_v = 165;
+
+
+  combined_model = 1;
   //
   // for cyberzoo: Y:12-95, U:129-161, V:80-165, turn white.
   //int y1=16;  int u1=129; int v1=80; % cyberzoo, dark
