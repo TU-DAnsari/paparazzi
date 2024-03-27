@@ -47,6 +47,7 @@ float computePIDheading(float droneheading, float targetheading);
 enum navigation_state_t {
   SAFE,
   FRONTAL_OBSTACLE,
+  SEARCH_HEADING,
   SEARCH_FOR_SAFE_HEADING,
   OUT_OF_BOUNDS,
   TOP_LINE,
@@ -56,28 +57,33 @@ enum navigation_state_t {
 };
 
 // module settings
-int slow_mode_enabled = 0;
+int cnn_enabled = 1;
 
 // arena settings
 float OUTER_BOUNDS = 3.2f;
-float INNER_BOUNDS = 2.5f;
+float INNER_BOUNDS = 5.f;
 float SAFE_BOUNDS = 2.3f;
 float anglewrtEnu = -35;
 
 // avoidance velocity settings
 // float safe_xvel = .5f;
-float unsafe_xvel = .1f;
+float unsafe_xvel = .5f;
 // float safe_yvel = .5f;
-float unsafe_yvel = .1f;
+float unsafe_yvel = .5f;
 float heading_turn_rate = 2.f;
 float heading_search_rate = 0.5f;
 
-// Global settings - changable in gcs
-float slow_mode_safe_xvel = .2f;
-float slow_mode_safe_yvel = .2f;
+float cnn_w_avg = 0.f;
+float cnn_sum_r = 0.f;
+float cnn_sum_l = 0.f;
+float spx = 0.0f;
+float spy = 0.0f;
 
-float fast_mode_safe_xvel = .5f;
-float fast_mode_safe_yvel = .5f;
+// Global settings - changable in gcs
+float slow_mode_safe_xvel = .4f;
+float slow_mode_safe_yvel = .4f;
+float fast_mode_safe_xvel = .4f;
+float fast_mode_safe_yvel = .4f;
 
 float cnn_frontal_obstacle_threshold = 0.8f;
 
@@ -92,11 +98,25 @@ float cornering_turn_rate = 1.6f;
 float k_outer = .4f;
 float k_inner = .6f;
 
+// OA STUFF
+  float region_size = 0.f; 
+  float slice_size = 0.f; 
+
+
+  float of = 0.f; // total orange fraction (of) in slice
+  float of_a = 0.f; // total orange fraction (of) in given region
+  float of_b = 0.f; 
+  float of_c = 0.f;
+  float of_d = 0.f;
+
+
+// CNN STUFF
+
 float cnn_p_left = 0.0f;
 float cnn_p_center = 0.0f;
 float cnn_p_right = 0.0f;
 
-#define MOVING_AVERAGE_SIZE 4
+#define MOVING_AVERAGE_SIZE 5
 
 float cnn_n_prev_prob_left[MOVING_AVERAGE_SIZE] = {0.0f};
 float cnn_n_prev_prob_center[MOVING_AVERAGE_SIZE] = {0.0f};
@@ -124,6 +144,12 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
   color_count_b = count_region_b;
   color_count_c = count_region_c;
   color_count_d = count_region_d;
+
+  of = (color_count_a + color_count_b + color_count_c + color_count_d) / slice_size;
+  of_a = color_count_a / region_size;
+  of_b = color_count_b / region_size; 
+  of_c = color_count_c / region_size;
+  of_d = color_count_d / region_size;
 }
 
 // Assumes length MOVING_AVERAGE_SIZE
@@ -193,6 +219,9 @@ void our_avoider_init(void)
 {
   srand(time(NULL));
 
+  region_size = front_camera.output_size.w / 3 * front_camera.output_size.h / 4; 
+  slice_size = front_camera.output_size.w / 3 * front_camera.output_size.h; 
+
   xvel = fast_mode_safe_xvel;
   yvel = fast_mode_safe_yvel;
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
@@ -209,16 +238,7 @@ void our_avoider_periodic(void)
     return;
   }
 
-  //printf("slow mode enabled: %d", slow_mode_enabled);
-
-  float region_size = front_camera.output_size.w / 3 * front_camera.output_size.h / 4; 
-  float slice_size = front_camera.output_size.w / 3 * front_camera.output_size.h; 
-  float of = (color_count_a + color_count_b + color_count_c + color_count_d) / slice_size; // total orange fraction (of) in slice
-  float of_a = color_count_a / region_size; // total orange fraction (of) in given region
-  float of_b = color_count_b / region_size; 
-  float of_c = color_count_c / region_size;
-  float of_d = color_count_d / region_size;
-
+  //printf("slow mode enabled: %d", cnn_enabled);
 
   float newx = +cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x - sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
   float newy = sin(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->x + cos(RadOfDeg(anglewrtEnu))*stateGetPositionEnu_f() ->y;
@@ -232,7 +252,7 @@ void our_avoider_periodic(void)
     heading_deg = heading_deg - 360;
   }
 
-  printf("SLOW MODE: %d\n", slow_mode_enabled);
+  printf("SLOW MODE: %d\n", cnn_enabled);
   
   // float headingReq = CalcDifferenceInHeading(newx, newy, 1, 0);
   // float heading_rate = computePIDheading(heading_deg, headingReq);
@@ -307,7 +327,7 @@ void our_avoider_periodic(void)
       }
 
       if (fabsf(newx) < SAFE_BOUNDS && fabsf(newy) < SAFE_BOUNDS) {
-        if (slow_mode_enabled == 1){
+        if (cnn_enabled == 1){
           xvel = slow_mode_safe_xvel;
           yvel = slow_mode_safe_yvel;
         }
@@ -323,9 +343,7 @@ void our_avoider_periodic(void)
       // if inside inner bounds, obstacle avoidance
 
     
-
-
-      if(slow_mode_enabled == 0) {
+      if(cnn_enabled == 0) {
         if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
           navigation_state = FRONTAL_OBSTACLE;
           break;
@@ -338,25 +356,38 @@ void our_avoider_periodic(void)
         guidance_h_set_heading_rate(or_heading_rate);
       }
       
-
-      if (slow_mode_enabled == 1) {
-        if(cnn_p_center > cnn_frontal_obstacle_threshold) {
+      if (cnn_enabled == 1) {
+        if((cnn_p_left > cnn_frontal_obstacle_threshold && cnn_p_center > cnn_frontal_obstacle_threshold - 0.2) || cnn_p_center > cnn_frontal_obstacle_threshold - 0.05  || (cnn_p_right > cnn_frontal_obstacle_threshold && cnn_p_center > cnn_frontal_obstacle_threshold - 0.2)) {
           navigation_state = FRONTAL_OBSTACLE;
+          spx = newx;
+          spy = newy;
           break;  
         }
 
-        float ob_forward_velocity = (1 - (cnn_p_center)) * xvel;
-        float ob_heading_rate = 0.0f;
-
-        if (cnn_p_left < 0.1 && cnn_p_center > 0.5){
-          ob_heading_rate = -0.4f * heading_turn_rate;
-        }
-        if (cnn_p_right < 0.1 && cnn_p_center > 0.5){
-          ob_heading_rate = 0.4f * heading_turn_rate;
+        if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+          navigation_state = FRONTAL_OBSTACLE;
+          break;
         }
 
-        guidance_h_set_body_vel(ob_forward_velocity, 0.0f);
-        guidance_h_set_heading_rate(ob_heading_rate);
+        cnn_w_avg = (0.25 * cnn_p_left + 0.5 * cnn_p_center + 0.25 * cnn_p_right) / 3;
+
+        float or_forward_velocity = (1 - of) * xvel;
+        float or_lateral_velocity = (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * yvel;
+        float or_heading_rate =  (k_inner * (of_b - of_c) + k_outer * (of_a - of_d)) * heading_turn_rate;
+
+        float ob_forward_velocity = (1 - cnn_w_avg) * xvel;
+        float ob_lateral_velocity = 0.4 * (cnn_p_left - cnn_p_right) * yvel;
+        float ob_heading_reate = 0.3 * (cnn_p_left - cnn_p_right) * heading_turn_rate;
+
+        float applied_forward_velocity = (or_forward_velocity + or_lateral_velocity) / 2;
+        float applied_lateral_velocity = (or_lateral_velocity + ob_lateral_velocity) / 2;
+        float applied_heading_rate = (or_heading_rate + ob_heading_reate) / 2;
+
+        cnn_sum_r += cnn_p_right;
+        cnn_sum_l += cnn_p_left;
+
+        guidance_h_set_body_vel(applied_forward_velocity, applied_lateral_velocity);
+        guidance_h_set_heading_rate(applied_heading_rate);
       } 
       break;
 
@@ -364,23 +395,43 @@ void our_avoider_periodic(void)
     case FRONTAL_OBSTACLE:
       VERBOSE_PRINT("STATE: FRONTAL_OBSTACLE\n");
       // stop
-      guidance_h_set_body_vel(0, 0);
-      guidance_h_set_heading_rate(heading_search_rate);
+      guidance_h_set_heading_rate(0.f);
+      
+      float dvx = spx - newx;
+      float dvy = spy - newy;
+
+      float drone_dvx = +cos(RadOfDeg(90 - heading_deg)) * dvx + sin(RadOfDeg(90 - heading_deg)) * dvy;
+      float drone_dvy = -sin(RadOfDeg(90 - heading_deg)) * dvx + cos(RadOfDeg(90 - heading_deg)) * dvy;
+
+      float dist = sqrt(powf(spx - newx, 2) + powf(spy - newy, 2));
+
+      guidance_h_set_body_vel(0.5 * drone_dvx, -0.5 * drone_dvy);
+      
+      printf("DISTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANCE: %f\n", dist);
+
+      if(dist < 0.15) {
+        guidance_h_set_body_vel(0.f, 0.f);
+        navigation_state = SEARCH_HEADING;
+      }
+      break;
 
 
-      if(slow_mode_enabled == 0) {
+    case SEARCH_HEADING:
+      guidance_h_set_heading_rate(sign(cnn_sum_l - cnn_sum_r) * heading_search_rate);
+
+      if(cnn_enabled == 0) {
         if(of_b < 0.4f && of_c < 0.4f) {
           navigation_state = SAFE;
         }
       }
 
-
-      if(slow_mode_enabled == 1) {
+      if(cnn_enabled == 1) {
         if(cnn_p_center < 0.5f) {
           navigation_state = SAFE;
+          cnn_sum_r = 0.f;
+          cnn_sum_l = 0.f;
         }
       }
-
       break;
 
 

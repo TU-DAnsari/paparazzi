@@ -18,7 +18,7 @@ so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTI
   <settings>
     <dl_settings>
       <dl_settings name="OurAvoider">
-         <dl_setting var="slow_mode_enabled" min="0" step="1" max="1" values="OFF|ON" />
+         <dl_setting var="cnn_enabled" min="0" step="1" max="1" values="OFF|ON" />
          <dl_setting var="slow_mode_safe_xvel" min="0" step="0.04" max="0.8" shortname="xvSlow"/>
          <dl_setting var="slow_mode_safe_yvel" min="0" step="0.04" max="0.8" shortname="yvSlow"/>
          <dl_setting var="fast_mode_safe_xvel" min="0" step="0.04" max="0.8" shortname="xvFast"/>
