@@ -60,9 +60,9 @@ enum navigation_state_t {
 int cnn_enabled = 1;
 
 // arena settings
-float OUTER_BOUNDS = 3.2f;
-float INNER_BOUNDS = 5.f;
-float SAFE_BOUNDS = 2.3f;
+float OUTER_BOUNDS = 3.1f;
+float INNER_BOUNDS = 2.7f;
+float SAFE_BOUNDS = 2.5f;
 float anglewrtEnu = -35;
 
 // avoidance velocity settings
@@ -70,7 +70,7 @@ float anglewrtEnu = -35;
 float unsafe_xvel = .5f;
 // float safe_yvel = .5f;
 float unsafe_yvel = .5f;
-float heading_turn_rate = 2.f;
+float heading_turn_rate = 1.f;
 float heading_search_rate = 0.5f;
 
 float cnn_w_avg = 0.f;
@@ -81,9 +81,9 @@ float spy = 0.0f;
 
 // Global settings - changable in gcs
 float slow_mode_safe_xvel = .4f;
-float slow_mode_safe_yvel = .4f;
-float fast_mode_safe_xvel = .4f;
-float fast_mode_safe_yvel = .4f;
+float slow_mode_safe_yvel = .3f;
+float fast_mode_safe_xvel = .6f;
+float fast_mode_safe_yvel = .3f;
 
 float cnn_frontal_obstacle_threshold = 0.8f;
 
@@ -92,7 +92,7 @@ float yvel;
 
 float cornering_xvel = 0.1f;
 float cornering_yvel = 0.5f;
-float cornering_turn_rate = 1.6f;
+float cornering_turn_rate = 1.0f;
 
 // yaw rate proportional factors
 float k_outer = .4f;

@@ -23,8 +23,13 @@ extern float fast_mode_safe_yvel;
 
 extern float cnn_frontal_obstacle_threshold;
 extern float heading_turn_rate;
+extern float cornering_turn_rate;
 
 extern int cnn_enabled;
+
+extern float OUTER_BOUNDS;
+extern float INNER_BOUNDS;
+extern float SAFE_BOUNDS;
 
 extern void our_avoider_init(void);
 extern void our_avoider_periodic(void);

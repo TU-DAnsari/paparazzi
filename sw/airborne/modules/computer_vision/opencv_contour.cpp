@@ -43,8 +43,8 @@
 // #include "MobileNetTinyv6Trained.h"
 // #include "MobileNetTinyv6TrainedSim.h"
 // #include "MobileNetTinyv7Trained.h"
-// #include "MobileNetTinyv8Trained.h"
-#include "MobileNetTinyv8CombiTrained.h"
+#include "MobileNetTinyv8Trained.h"
+//#include "MobileNetTinyv8CombiTrained.h"
 
 
 #include "lib/vision/image.h"

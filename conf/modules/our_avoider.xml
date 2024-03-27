@@ -19,12 +19,16 @@ so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTI
     <dl_settings>
       <dl_settings name="OurAvoider">
          <dl_setting var="cnn_enabled" min="0" step="1" max="1" values="OFF|ON" />
-         <dl_setting var="slow_mode_safe_xvel" min="0" step="0.04" max="0.8" shortname="xvSlow"/>
-         <dl_setting var="slow_mode_safe_yvel" min="0" step="0.04" max="0.8" shortname="yvSlow"/>
-         <dl_setting var="fast_mode_safe_xvel" min="0" step="0.04" max="0.8" shortname="xvFast"/>
+         <dl_setting var="slow_mode_safe_xvel" min="0" step="0.04" max="1.0" shortname="xvSlow"/>
+         <dl_setting var="slow_mode_safe_yvel" min="0" step="0.04" max="0.6" shortname="yvSlow"/>
+         <dl_setting var="fast_mode_safe_xvel" min="0" step="0.04" max="1.4" shortname="xvFast"/>
          <dl_setting var="fast_mode_safe_yvel" min="0" step="0.04" max="0.8" shortname="yvFast"/>
-         <dl_setting var="heading_turn_rate" min="0" step="0.05" max="2.0" shortname="turnRateHeading"/>
-         <dl_setting var="cnn_frontal_obstacle_threshold" min="0" step="0.05" max="1.0" shortname="cnn_FrObsThr"/>
+         <dl_setting var="heading_turn_rate" min="0" step="0.05" max="2.0" shortname="HeadingTurnRate"/>
+         <dl_setting var="cornering_turn_rate" min="0" step="0.05" max="2.0" shortname="CornTurnRate"/>
+         <dl_setting var="cnn_frontal_obstacle_threshold" min="0" step="0.05" max="1.6" shortname="cnn_FrObsThr"/>
+         <dl_setting var="OUTER_BOUNDS" min="0" step="0.05" max="6.2" shortname="outerBounds"/>
+         <dl_setting var="INNER_BOUNDS" min="0" step="0.05" max="5.4" shortname="innerBounds"/>
+         <dl_setting var="SAFE_BOUNDS" min="0" step="0.05" max="5.0" shortname="safeBounds"/>
       </dl_settings>
     </dl_settings>
   </settings>
