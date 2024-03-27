@@ -386,8 +386,8 @@ void our_avoider_periodic(void)
         cnn_sum_r += cnn_p_right;
         cnn_sum_l += cnn_p_left;
 
-        guidance_h_set_body_vel(ob_forward_velocity, ob_lateral_velocity);
-        guidance_h_set_heading_rate(ob_heading_reate);
+        guidance_h_set_body_vel(applied_forward_velocity, applied_lateral_velocity);
+        guidance_h_set_heading_rate(applied_heading_rate);
       } 
       break;
 
