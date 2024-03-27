@@ -79,6 +79,7 @@ float slow_mode_safe_yvel = .2f;
 float fast_mode_safe_xvel = .5f;
 float fast_mode_safe_yvel = .5f;
 
+float cnn_frontal_obstacle_threshold = 0.8f;
 
 float xvel;
 float yvel;
@@ -339,7 +340,7 @@ void our_avoider_periodic(void)
       
 
       if (slow_mode_enabled == 1) {
-        if(cnn_p_center > 0.8) {
+        if(cnn_p_center > cnn_frontal_obstacle_threshold) {
           navigation_state = FRONTAL_OBSTACLE;
           break;  
         }

@@ -21,6 +21,9 @@ extern float slow_mode_safe_yvel;
 extern float fast_mode_safe_xvel;
 extern float fast_mode_safe_yvel;
 
+extern float cnn_frontal_obstacle_threshold;
+extern float heading_turn_rate;
+
 extern int slow_mode_enabled;
 
 extern void our_avoider_init(void);
