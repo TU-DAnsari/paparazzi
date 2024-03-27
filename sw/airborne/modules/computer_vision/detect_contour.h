@@ -26,6 +26,8 @@
 #ifndef DETECT_CONTOUR_H
 #define DETECT_CONTOUR_H
 
+extern float combined_model;
+
 extern void detect_contour_init(void);
 
 #endif
