@@ -91,7 +91,7 @@ float xvel;
 float yvel;
 
 float cornering_xvel = 0.1f;
-float cornering_yvel = 0.5f;
+float cornering_yvel = 0.3f; //hereee
 float cornering_turn_rate = 1.0f;
 
 // yaw rate proportional factors
@@ -459,9 +459,11 @@ void our_avoider_periodic(void)
     case TOP_LINE:
       VERBOSE_PRINT("STATE: TOP_LINE\n");
       if(cnn_p_center > 0.8) {
+        guidance_h_set_body_vel(0, 0);
         navigation_state = SEARCH_FOR_SAFE_HEADING;
         break;  
       } else if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+        guidance_h_set_body_vel(0, 0);
         navigation_state = SEARCH_FOR_SAFE_HEADING;
         break;
       }
@@ -470,14 +472,24 @@ void our_avoider_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 0 && heading_deg <=110) {
         //turn right
-        guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
-        guidance_h_set_heading_rate(cornering_turn_rate);
-        navigation_state = SAFE;
+        if(cnn_p_right > 0.5) {  //hereee
+          guidance_h_set_body_vel(0, 0);
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+        } else{
+          guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
+          guidance_h_set_heading_rate(cornering_turn_rate);
+          navigation_state = SAFE;
+        }
       } else if (heading_deg <= 0 && heading_deg >= -110) {
         //turn left
-        guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
-        guidance_h_set_heading_rate(-cornering_turn_rate);
-        navigation_state = SAFE;
+        if(cnn_p_left > 0.5) {  //hereee
+          guidance_h_set_body_vel(0, 0);
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+        } else{
+          guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
+          guidance_h_set_heading_rate(-cornering_turn_rate);
+          navigation_state = SAFE;
+        }
       } else {
         guidance_h_set_body_vel(cornering_xvel, 0);
         guidance_h_set_heading_rate(RadOfDeg(0));
@@ -489,9 +501,11 @@ void our_avoider_periodic(void)
     case RIGHT_LINE:
       VERBOSE_PRINT("STATE: RIGHT_LINE\n");
       if(cnn_p_center > 0.8) {
+        guidance_h_set_body_vel(0, 0);
         navigation_state = SEARCH_FOR_SAFE_HEADING;
         break;  
       } else if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+        guidance_h_set_body_vel(0, 0);
         navigation_state = SEARCH_FOR_SAFE_HEADING;
         break;
       }
@@ -500,14 +514,24 @@ void our_avoider_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if((heading_deg >= 90 && heading_deg <=180) || (heading_deg >= -180 && heading_deg <=-160)) {
         //turn right
-        guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
-        guidance_h_set_heading_rate(cornering_turn_rate);
-        navigation_state = SAFE;
+        if(cnn_p_right > 0.5) {  //hereee
+          guidance_h_set_body_vel(0, 0);
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+        } else{
+          guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
+          guidance_h_set_heading_rate(cornering_turn_rate);
+          navigation_state = SAFE;
+        }
       } else if  ((heading_deg <= 90 && heading_deg >= 0) || (heading_deg >= -20 && heading_deg <= 0))  {
         //turn left
-        guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
-        guidance_h_set_heading_rate(-cornering_turn_rate);
-        navigation_state = SAFE;
+        if(cnn_p_left > 0.5) {  //hereee
+          guidance_h_set_body_vel(0, 0);
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+        } else{
+          guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
+          guidance_h_set_heading_rate(-cornering_turn_rate);
+          navigation_state = SAFE;
+        }
       } else {
         guidance_h_set_body_vel(cornering_xvel, 0);
         guidance_h_set_heading_rate(RadOfDeg(0));
@@ -519,9 +543,11 @@ void our_avoider_periodic(void)
     case BOTTOM_LINE:
       VERBOSE_PRINT("STATE: BOTTOM_LINE\n");
       if(cnn_p_center > 0.8) {
+        guidance_h_set_body_vel(0, 0);
         navigation_state = SEARCH_FOR_SAFE_HEADING;
         break;  
       } else if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+        guidance_h_set_body_vel(0, 0);
         navigation_state = SEARCH_FOR_SAFE_HEADING;
         break;
       }
@@ -530,14 +556,24 @@ void our_avoider_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -180 && heading_deg <=-70) {
         //turn right
-        guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
-        guidance_h_set_heading_rate(cornering_turn_rate);
-        navigation_state = SAFE;
+        if(cnn_p_right > 0.5) {  //hereee
+          guidance_h_set_body_vel(0, 0);
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+        } else{
+          guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
+          guidance_h_set_heading_rate(cornering_turn_rate);
+          navigation_state = SAFE;
+        }
       } else if (heading_deg <= 180 && heading_deg >= 70) {
         //turn left
-        guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
-        guidance_h_set_heading_rate(-cornering_turn_rate);
-        navigation_state = SAFE;
+        if(cnn_p_left > 0.5) {  //hereee
+          guidance_h_set_body_vel(0, 0);
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+        } else{
+          guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
+          guidance_h_set_heading_rate(-cornering_turn_rate);
+          navigation_state = SAFE;
+        }
       } else {
         guidance_h_set_body_vel(cornering_xvel, 0);
         guidance_h_set_heading_rate(RadOfDeg(0));
@@ -549,9 +585,11 @@ void our_avoider_periodic(void)
     case LEFT_LINE:
       VERBOSE_PRINT("STATE: LEFT_LINE\n");
       if(cnn_p_center > 0.8) {
+        guidance_h_set_body_vel(0, 0);
         navigation_state = SEARCH_FOR_SAFE_HEADING;
         break;  
       } else if((of_b > 0.4 && of_c > 0.4) || (of_b > 0.75f) || (of_b > 0.75f)) {
+        guidance_h_set_body_vel(0, 0);
         navigation_state = SEARCH_FOR_SAFE_HEADING;
         break;
       }
@@ -560,14 +598,24 @@ void our_avoider_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if((heading_deg >= -90 && heading_deg <=0)  || (heading_deg >= 0 && heading_deg <= 20)){
         //turn right
-        guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
-        guidance_h_set_heading_rate(cornering_turn_rate);
-        navigation_state = SAFE;
+        if(cnn_p_right > 0.5) {  //hereee
+          guidance_h_set_body_vel(0, 0);
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+        } else{
+          guidance_h_set_body_vel(cornering_xvel, cornering_yvel);
+          guidance_h_set_heading_rate(cornering_turn_rate);
+          navigation_state = SAFE;
+        }
       } else if ((heading_deg <= -90 && heading_deg >= -180) || (heading_deg >= 160 && heading_deg <=180)) {
         //turn left
-        guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
-        guidance_h_set_heading_rate(-cornering_turn_rate);
-        navigation_state = SAFE;
+        if(cnn_p_left > 0.5) {  //hereee
+          guidance_h_set_body_vel(0, 0);
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+        } else{
+          guidance_h_set_body_vel(cornering_xvel, -cornering_yvel);
+          guidance_h_set_heading_rate(-cornering_turn_rate);
+          navigation_state = SAFE;
+        }
       } else {
         guidance_h_set_body_vel(cornering_xvel, 0);
         guidance_h_set_heading_rate(RadOfDeg(0));
