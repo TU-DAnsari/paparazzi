@@ -472,7 +472,7 @@ void our_avoider_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= 0 && heading_deg <=110) {
         //turn right
-        if(cnn_p_right > 0.5) {  //hereee
+        if(cnn_sum_l > cnn_sum_r){}  //hereee
           guidance_h_set_body_vel(0, 0);
           navigation_state = SEARCH_FOR_SAFE_HEADING;
         } else{
@@ -482,7 +482,7 @@ void our_avoider_periodic(void)
         }
       } else if (heading_deg <= 0 && heading_deg >= -110) {
         //turn left
-        if(cnn_p_left > 0.5) {  //hereee
+        if(cnn_sum_l < cnn_sum_r)) {  //hereee
           guidance_h_set_body_vel(0, 0);
           navigation_state = SEARCH_FOR_SAFE_HEADING;
         } else{
@@ -514,7 +514,7 @@ void our_avoider_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if((heading_deg >= 90 && heading_deg <=180) || (heading_deg >= -180 && heading_deg <=-160)) {
         //turn right
-        if(cnn_p_right > 0.5) {  //hereee
+        if(cnn_sum_l > cnn_sum_r)) {  //hereee
           guidance_h_set_body_vel(0, 0);
           navigation_state = SEARCH_FOR_SAFE_HEADING;
         } else{
@@ -524,7 +524,7 @@ void our_avoider_periodic(void)
         }
       } else if  ((heading_deg <= 90 && heading_deg >= 0) || (heading_deg >= -20 && heading_deg <= 0))  {
         //turn left
-        if(cnn_p_left > 0.5) {  //hereee
+        if(cnn_sum_l < cnn_sum_r)) {  //hereee
           guidance_h_set_body_vel(0, 0);
           navigation_state = SEARCH_FOR_SAFE_HEADING;
         } else{
@@ -556,7 +556,7 @@ void our_avoider_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if(heading_deg >= -180 && heading_deg <=-70) {
         //turn right
-        if(cnn_p_right > 0.5) {  //hereee
+        if(cnn_sum_l > cnn_sum_r)) {  //hereee
           guidance_h_set_body_vel(0, 0);
           navigation_state = SEARCH_FOR_SAFE_HEADING;
         } else{
@@ -566,7 +566,7 @@ void our_avoider_periodic(void)
         }
       } else if (heading_deg <= 180 && heading_deg >= 70) {
         //turn left
-        if(cnn_p_left > 0.5) {  //hereee
+        if(cnn_sum_l < cnn_sum_r)) {  //hereee
           guidance_h_set_body_vel(0, 0);
           navigation_state = SEARCH_FOR_SAFE_HEADING;
         } else{
@@ -598,7 +598,7 @@ void our_avoider_periodic(void)
           navigation_state = OUT_OF_BOUNDS;
       } else if((heading_deg >= -90 && heading_deg <=0)  || (heading_deg >= 0 && heading_deg <= 20)){
         //turn right
-        if(cnn_p_right > 0.5) {  //hereee
+        if(cnn_sum_l > cnn_sum_r)) {  //hereee
           guidance_h_set_body_vel(0, 0);
           navigation_state = SEARCH_FOR_SAFE_HEADING;
         } else{
@@ -608,7 +608,7 @@ void our_avoider_periodic(void)
         }
       } else if ((heading_deg <= -90 && heading_deg >= -180) || (heading_deg >= 160 && heading_deg <=180)) {
         //turn left
-        if(cnn_p_left > 0.5) {  //hereee
+        if(cnn_sum_l < cnn_sum_r)) {  //hereee
           guidance_h_set_body_vel(0, 0);
           navigation_state = SEARCH_FOR_SAFE_HEADING;
         } else{
