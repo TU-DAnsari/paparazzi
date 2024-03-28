@@ -24,7 +24,7 @@ so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTI
   <init fun="our_avoider_init()"/>
   <init fun="probability_map_init()"/>
   <periodic fun="our_avoider_periodic()" freq="4"/>
-  <periodic fun="probability_map_update()" freq="1"/>
+  <periodic fun="probability_map_update()" freq="5"/>
   <makefile target="ap|nps">
     <file name="our_avoider.c"/>
     <file name="probability_map.c"/>

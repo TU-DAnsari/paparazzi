@@ -93,10 +93,10 @@
       <define name="VIEWVIDEO_DOWNSIZE_FACTOR" value="1"/>
       <define name="VIEWVIDEO_QUALITY_FACTOR" value="40"/>
     </module>
-    <module name="cv_detect_contour">
+    <!-- <module name="cv_detect_contour">
       <define name="DETECT_CONTOUR_CAMERA" value="front_camera"/>
       <define name="DETECT_CONTOUR_FPS" value="2"/>
-    </module>
+    </module> -->
 
   </firmware>
 

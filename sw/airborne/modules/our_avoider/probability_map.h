@@ -76,7 +76,7 @@ extern bool isValid(int x, int y);
 extern bool isInClosedList(Node* node, Node** closedList, int closedSize);
 
 extern Node getStartNode();
-extern Node getGoalNode();
+extern Node getGoalNode(Node start);
 
 extern int* A_star();
 

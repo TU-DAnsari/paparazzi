@@ -45,8 +45,11 @@
 int sign(int num);
 float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goaly);
 float computePIDheading(float droneheading, float targetheading);
+float angleDifference(float angle1, float angle2);
 
 enum navigation_state_t {
+  SAFETURNING,
+  SAFEFORWARD,
   SAFE,
   FRONTAL_OBSTACLE,
   SEARCH_FOR_SAFE_HEADING,
@@ -92,7 +95,7 @@ int16_t color_count_b = 0;
 int16_t color_count_c = 0; 
 int16_t color_count_d = 0; 
 
-enum navigation_state_t navigation_state = SAFE;
+enum navigation_state_t navigation_state = SAFETURNING;
 
 
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
@@ -199,15 +202,15 @@ void our_avoider_periodic(void)
   
 
   VERBOSE_PRINT("\n");
-  VERBOSE_PRINT("of: %f\n", of); 
-  VERBOSE_PRINT("of a: %f\n", of_a); 
-  VERBOSE_PRINT("of b: %f\n", of_b);
-  VERBOSE_PRINT("of c: %f\n", of_c);
-  VERBOSE_PRINT("of d: %f\n", of_d);
-  VERBOSE_PRINT("\n");
-  VERBOSE_PRINT("p left: %f\n", cnn_p_left); 
-  VERBOSE_PRINT("p center: %f\n", cnn_p_center); 
-  VERBOSE_PRINT("p right: %f\n", cnn_p_right);
+  // VERBOSE_PRINT("of: %f\n", of); 
+  // VERBOSE_PRINT("of a: %f\n", of_a); 
+  // VERBOSE_PRINT("of b: %f\n", of_b);
+  // VERBOSE_PRINT("of c: %f\n", of_c);
+  // VERBOSE_PRINT("of d: %f\n", of_d);
+  // VERBOSE_PRINT("\n");
+  // VERBOSE_PRINT("p left: %f\n", cnn_p_left); 
+  // VERBOSE_PRINT("p center: %f\n", cnn_p_center); 
+  // VERBOSE_PRINT("p right: %f\n", cnn_p_right);
   VERBOSE_PRINT("position (x, y): %f, %f\n", newx, newy); 
   VERBOSE_PRINT("heading (deg): %f\n", heading_deg);
 
@@ -220,12 +223,52 @@ void our_avoider_periodic(void)
   // have the headng impact how much we turn when we come to an edge
 
   // heading pass trough true - to make sure we use optitrack
+  float wp_heading;
+  float wp_heading_rate;
 
+  float tolerance = 10;
 
   switch (navigation_state){
+    case SAFETURNING:
+      // VERBOSE_PRINT("STATE: SAFETURNING\n");
+      printf("Safe turning"); 
+      wp_heading = CalcDifferenceInHeading(newx, newy, wp.x, wp.y);
+      wp_heading_rate = computePIDheading(heading_deg, wp_heading);
+      // VERBOSE_PRINT("heading_rate:  %f\n", wp_heading_rate);
+      guidance_h_set_heading_rate(RadOfDeg(wp_heading_rate));
+      guidance_h_set_body_vel(0, 0);
+      // VERBOSE_PRINT("heading_differ:  %f\n", angleDifference(heading_deg, wp_heading));
+
+      if (angleDifference(heading_deg, wp_heading) < tolerance) {
+        // VERBOSE_PRINT("wp heading similar to heading");
+        guidance_h_set_heading_rate(0);
+        guidance_h_set_body_vel(xvel, 0);
+        navigation_state = SAFEFORWARD;
+      } 
+      // VERBOSE_PRINT("wp_heading (deg): %f\n", wp_heading);
+      break;
+    case SAFEFORWARD:
+      // VERBOSE_PRINT("STATE: SAFEFORWARD\n");
+      // printf("Safe forward");
+      guidance_h_set_heading_rate(0);
+      guidance_h_set_body_vel(xvel, 0);
+      wp_heading = CalcDifferenceInHeading(newx, newy, wp.x, wp.y);
+        
+      if (angleDifference(heading_deg, wp_heading) > tolerance){
+        wp_heading_rate = computePIDheading(heading_deg, wp_heading);
+        guidance_h_set_body_vel(0, 0);
+        guidance_h_set_heading_rate(RadOfDeg(wp_heading_rate));
+        navigation_state = SAFETURNING;
+      }
+      // VERBOSE_PRINT("wp_heading (deg): %f\n", wp_heading);
+      break;
     case SAFE:
       VERBOSE_PRINT("STATE: SAFE\n");
       // check if drone is out of bounds
+      navigation_state = SAFETURNING;
+      break;
+
+
       if (fabsf(newx) > OUTER_BOUNDS || fabsf(newy) > OUTER_BOUNDS) {
         // if outside outer bounds, check if facing out of bounds
         if(newy >= OUTER_BOUNDS && ((0 <= heading_deg && heading_deg <= 90) || (-90 <= heading_deg && heading_deg <= 0))) {
@@ -288,8 +331,8 @@ void our_avoider_periodic(void)
 
       if(of_b < 0.2 && of_c < 0.2) {
         float wp_forward_velocity = (1 - of + 0.2) * xvel;
-        float wp_heading = CalcDifferenceInHeading(newx, newy, wp.x, wp.y);
-        float wp_heading_rate = computePIDheading(heading, wp_heading);
+        wp_heading = CalcDifferenceInHeading(newx, newy, wp.x, wp.y);
+        wp_heading_rate = computePIDheading(heading, wp_heading);
         guidance_h_set_body_vel(wp_forward_velocity, sign(wp_heading_rate) * 0.5 * wp_forward_velocity);
         guidance_h_set_heading_rate(RadOfDeg(wp_heading_rate));
         break;
@@ -477,7 +520,7 @@ float CalcDifferenceInHeading(float dronex, float droney, float goalx, float goa
 // or change the pid to take the diff directly instead of computing it
 float computePIDheading(float droneheading, float targetheading) {
   //error = difference in heading clockwise positive
-  float error = 0;
+  float error;
   if (droneheading >= 0 && targetheading >= 0){
     error = targetheading - droneheading;
   } else if (droneheading >= 0 && targetheading <= 0){
@@ -495,7 +538,18 @@ float computePIDheading(float droneheading, float targetheading) {
   } else {
     return 0.0;
   }
+  // droneheading = fmodf(droneheading, 360.0f);
+  // targetheading = fmodf(targetheading, 360.0f);
 
+  // // Compute the error
+  // float error = targetheading - droneheading;
+
+  // // Normalize the error to be within the range [-180, 180)
+  // if (error < -180.0f) {
+  //     error += 360.0f;
+  // } else if (error >= 180.0f) {
+  //     error -= 360.0f;
+  // }
   //VERBOSE_PRINT("IN THE FUNC droneheading: %f targetheading: %f\n", droneheading, targetheading);
 
   // will tune the pid controller once waypoints are here
@@ -519,4 +573,13 @@ float computePIDheading(float droneheading, float targetheading) {
   last_error = error;
   // output should be the yaw rate
   return output;
+}
+
+float angleDifference(float angle1, float angle2){
+  float difference = fabs(angle1 - angle2);
+
+  if(difference > 180.0f){
+    difference = 360.0f - difference;
+  }
+  return difference;
 }
