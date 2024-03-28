@@ -163,8 +163,8 @@ void our_avoider_periodic(void)
   
   Point wp = getGlobalDirection(); 
 
-  printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Waypoint X: %f\n", wp.x);
-  printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Waypoint Y: %f\n", wp.y);
+  // printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Waypoint X: %f\n", wp.x);
+  // printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Waypoint Y: %f\n", wp.y);
 
   // Only run the mudule if we are in the correct flight mode
   if (guidance_h.mode != GUIDANCE_H_MODE_GUIDED) {
@@ -201,7 +201,7 @@ void our_avoider_periodic(void)
   // float heading_rate = computePIDheading(heading_deg, headingReq);
   
 
-  VERBOSE_PRINT("\n");
+  // VERBOSE_PRINT("\n");
   // VERBOSE_PRINT("of: %f\n", of); 
   // VERBOSE_PRINT("of a: %f\n", of_a); 
   // VERBOSE_PRINT("of b: %f\n", of_b);
@@ -211,8 +211,8 @@ void our_avoider_periodic(void)
   // VERBOSE_PRINT("p left: %f\n", cnn_p_left); 
   // VERBOSE_PRINT("p center: %f\n", cnn_p_center); 
   // VERBOSE_PRINT("p right: %f\n", cnn_p_right);
-  VERBOSE_PRINT("position (x, y): %f, %f\n", newx, newy); 
-  VERBOSE_PRINT("heading (deg): %f\n", heading_deg);
+  // VERBOSE_PRINT("position (x, y): %f, %f\n", newx, newy); 
+  // VERBOSE_PRINT("heading (deg): %f\n", heading_deg);
 
   // VERBOSE_PRINT("Heading REQ: %f heading diff: %f heading rate: %f\n", headingReq, headingReq-heading_deg, heading_rate);
 
@@ -231,7 +231,7 @@ void our_avoider_periodic(void)
   switch (navigation_state){
     case SAFETURNING:
       // VERBOSE_PRINT("STATE: SAFETURNING\n");
-      printf("Safe turning"); 
+      // printf("Safe turning"); 
       wp_heading = CalcDifferenceInHeading(newx, newy, wp.x, wp.y);
       wp_heading_rate = computePIDheading(heading_deg, wp_heading);
       // VERBOSE_PRINT("heading_rate:  %f\n", wp_heading_rate);

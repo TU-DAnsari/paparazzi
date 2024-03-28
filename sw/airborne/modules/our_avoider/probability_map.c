@@ -128,6 +128,10 @@ Node getStartNode(){
     Node start;
     start.index_x = location_map_x;
     start.index_y = location_map_y;
+    printf("start index X: %d\n", location_map_x);
+    printf("start index y: %d\n", location_map_y);
+    printf("start X: %f\n", indexToCoordiantesX(location_map_x));
+    printf("start Y: %f\n", indexToCoordiantesY(location_map_y));
     start.g =0;
     start.f = 0;
     start.h = 0;
@@ -146,10 +150,11 @@ int countZeroPoints() {
     }
     return count;
 }
-
+static bool seeded = false;
 void chooseRandomZeroPoint(int* randomX, int* randomY) {
     // Count the number of zero points
     int zeroCount = countZeroPoints();
+    //  printf("Number of zero points: %d\n", zeroCount);
     if (zeroCount == 0) {
         // No zero points found, return (-1, -1)
         *randomX = -1;
@@ -158,7 +163,10 @@ void chooseRandomZeroPoint(int* randomX, int* randomY) {
     }
 
     // Seed the random number generator
-    srand(time(NULL));
+    if (!seeded) {
+        srand(time(NULL));
+        seeded = true;
+    }
 
     // Generate a random index among zero points
     int randomIndex = rand() % zeroCount;
@@ -184,11 +192,20 @@ Node getGoalNode(Node start){
     int index_y;
     chooseRandomZeroPoint(&index_x, &index_y);
 
-    while (sqrt((start.index_x - index_x) * (start.index_x - index_x) + (start.index_y - index_y) *(start.index_y - index_y)) > 8){
+    while (sqrt(indexToCoordiantesX((start.index_x - index_x)) * indexToCoordiantesX((start.index_x - index_x))
+     + indexToCoordiantesY((start.index_y - index_y)) * indexToCoordiantesY((start.index_y - index_y))) < 1){
         chooseRandomZeroPoint(&index_x, &index_y);
+        printf("sampled index: %d\n", index_x);
+        printf("sampled index: %d\n", index_y);
+        printf("sampled coordinate X: %f\n", indexToCoordiantesX(index_x));
+        printf("sampled coordinate: %f\n", indexToCoordiantesY(index_y));
     }
-    printf("AAA goal X: %f\n", index_x);
-    printf("AAA goal y: %f\n", index_y);
+    printf("AAA goal X: %d\n", index_x);
+    printf("AAA goal y: %d\n", index_y);
+    printf("Goal X: %f\n", indexToCoordiantesX(index_x));
+    printf("Goal Y: %f\n", indexToCoordiantesY(index_y));
+
+
     Node goal;
     goal.index_x = index_x;
     goal.index_y = index_y;
@@ -218,13 +235,13 @@ int* createInitialPath(Point* points, int num_points) {
 
 int* A_star(Node start, Node end){
     // create surrounding nodes
-    printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Start A_star");
+    // printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Start A_star");
     Node* openList[ROOM_WIDTH * ROOM_HEIGHT];
     Node* closedList[ROOM_WIDTH * ROOM_HEIGHT];
     int openSize = 0;
     int closedSize = 0;
     
-    printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Sampled nodes");
+    // printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Sampled nodes");
     openList[openSize++] = &start;
     // Loop until open list is empty
     while (openSize > 0) {
@@ -248,16 +265,19 @@ int* A_star(Node start, Node end){
 
         // Check if current node is the goal node
         if (current->index_x == end.index_x && current->index_y == end.index_y) {
-            printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Found goal");
+            // printf("AAAAAAAAAAAAAAAAAAAAAAAAAA Found goal");
             // Reconstruct the path
+            
             int* path = (int*)malloc((current->g + 1) * sizeof(int)); // Allocate memory for path
             Node* temp = current;
-            int pathLength = current->g + 1;
-            for (int i = pathLength - 1; i >= 0; i--) {
+            int pathLength1 = current->g + 1;
+            pathLength = current->g;
+            for (int i = pathLength1 - 1; i >= 0; i--) {
                 path[i] = temp->index_x * map.height + temp->index_y; 
-                printf("Index: %d, Index_x: %d, Index_y: %d\n", path[i], temp->index_x, temp->index_y);// Convert 2D index to 1D index
+                // printf("Index: %d, Index_x: %d, Index_y: %d\n", path[i], temp->index_x, temp->index_y);// Convert 2D index to 1D index
                 temp = temp->parent;
             }
+            
             return path;
         }
 
@@ -319,7 +339,7 @@ int* A_star(Node start, Node end){
 
 Point getGlobalDirection() {
     // Check if there is an existing path
-    if (path == NULL || pathLength == 0) {
+    if (path == NULL && pathLength == 0) {
         // Generate a new path
         Node start = getStartNode();
         Node end = getGoalNode(start);
@@ -329,12 +349,15 @@ Point getGlobalDirection() {
             return (Point){-1, -1};
         }
         printf("Path: ");
-        pathLength = 0;
+        
+
+        printf("path Index_x: %d", pathLength);
         for (int i = 0; i < (end.g+1) && path[i] != -1; ++i) {
             float x = indexToCoordiantesX(path[i] / map.height); // Calculate x-coordinate from index
             float y = indexToCoordiantesX(path[i] % map.height); // Calculate y-coordinate from index
+            printf("path Index_x: %d, Index_y: %d\n", path[i] / map.height, path[i] % map.height);
+            
             printf("(%.2f, %.2f) ", x, y);
-            pathLength++;
         }
         printf("\n");
         // Calculate path length
@@ -358,8 +381,9 @@ Point getGlobalDirection() {
         }
         path[pathLength - 1] = -1; // Mark the last element as -1
         pathLength--; // Reduce path length
-
+        printf("Removed point");
         if (pathLength == 0) {
+            printf("finished path");
             free(path);
             path = NULL; // Set path to NULL to indicate no active path
         }
