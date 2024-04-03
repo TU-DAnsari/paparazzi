@@ -11,6 +11,10 @@ Running Group 8 code
 7. In GCS: "Start Engine", "Takeoff", "Start"
 8. Now the drone should be running using CNN based obstale avoidance :)
 
+Group 8 CNN model
+------
+For the purposes of obstacle avoidance, an existing CNN model (MobileNetv3 from: https://github.com/d-li14/mobilenetv3.pytorch/tree/master) was adapted for our purposes. More information about our CNN architecture and dataset creation can be found here: https://github.com/DavidEncrypted/bebop_cnn_obstacle_detection.
+
 Paparazzi UAS
 =============
 [![Build Status](https://paparazziuav.semaphoreci.com/badges/paparazzi/branches/master.svg?style=shields&key=d3a59143-a357-434e-89b8-057f15ed8dd2)](https://paparazziuav.semaphoreci.com/projects/paparazzi) [![Gitter chat](https://badges.gitter.im/paparazzi/discuss.svg)](https://gitter.im/paparazzi/discuss)
