@@ -1,5 +1,16 @@
 # MAIN README
 
+Running Group 8 code
+------
+1. Ensure OpenCV is installed and built
+2. "./paparazzi" to run the Paparazzi Center
+3. Select bebop_orange_avoid_guided in the top left box
+4. Select the "airframes/tudelft/bebop_g8_avoider.xml" airframe
+5. Select  the "flight_plans/tudelft/course_orangeavoid_cyberzoo_guided.xml" flightplan
+6. Clean, Build and Run
+7. In GCS: "Start Engine", "Takeoff", "Start"
+8. Now the drone should be running using CNN based obstale avoidance :)
+
 Paparazzi UAS
 =============
 [![Build Status](https://paparazziuav.semaphoreci.com/badges/paparazzi/branches/master.svg?style=shields&key=d3a59143-a357-434e-89b8-057f15ed8dd2)](https://paparazziuav.semaphoreci.com/projects/paparazzi) [![Gitter chat](https://badges.gitter.im/paparazzi/discuss.svg)](https://gitter.im/paparazzi/discuss)
@@ -78,6 +89,8 @@ Uploading the embedded software
 1. Power the flight controller board while it is connected to the PC with the USB cable.
 
 2. From the Paparazzi center, select the "ap" target, and click "Upload".
+
+
 
 
 Flight
