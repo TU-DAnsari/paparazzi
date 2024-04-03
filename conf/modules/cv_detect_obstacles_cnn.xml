@@ -1,0 +1,75 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+<module name="cv_detect_obstacles_cnn" dir="computer_vision">
+  <doc>
+    <description>A module that detects the contour of a dronerace obstacle.
+    </description>
+
+    <define name="DETECT_OBSTACLES_CAMERA" value="front_camera|bottom_camera" description="Video device to use"/>
+    <define name="DETECT_OBSTACLES_FPS" value="1" description="The (maximum) frequency to run the calculations at. If zero, it will max out at the camera frame rate"/>
+  </doc>
+
+  <header>
+    <file name="detect_obstacles_cnn.h"/>
+  </header>
+  <init fun="detect_obstacles_cnn_init()"/>
+  <makefile target="ap">
+    <file name="detect_obstacles_cnn.c"/>
+    <file name="opencv_obst_det_cnn.cpp"/>
+    <file name="opencv_image_functions.cpp"/>
+    <flag name="CXXFLAGS" value="I$(PAPARAZZI_SRC)/sw/ext/opencv_bebop/install_arm/include"/>
+    <flag name="CXXFLAGS" value="O3"/>
+    
+    <!-- <flag name="LDFLAGS" value="lopencv_imgcodecs" />
+    <flag name="LDFLAGS" value="lopencv_imgproc" />
+    <flag name="LDFLAGS" value="lopencv_core" />
+     -->
+    <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_arm/lib"/>
+    <flag name="LDFLAGS" value="lopencv_world"/>
+    <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_arm/share/OpenCV/3rdparty/lib"/>
+    
+    
+    <flag name="LDFLAGS" value="lzlib" />
+    <flag name="LDFLAGS" value="llibprotobuf"/>
+    <flag name="LDFLAGS" value="llibjpeg-turbo"/>
+    <flag name="LDFLAGS" value="llibpng" />
+    <flag name="LDFLAGS" value="llibtiff"/>
+    <flag name="LDFLAGS" value="lstdc++" />
+    <flag name="LDFLAGS" value="lquirc"/>
+    <flag name="LDFLAGS" value="ltegra_hal"/>
+    <flag name="LDFLAGS" value="ldl" />
+    <flag name="LDFLAGS" value="lm" />
+    <flag name="LDFLAGS" value="lpthread" />
+    <flag name="LDFLAGS" value="lrt" />
+
+  </makefile>
+
+  <makefile target="nps">
+    <file name="detect_obstacles_cnn.c"/>
+    <file name="opencv_obst_det_cnn.cpp"/>
+    <file name="opencv_image_functions.cpp"/>
+    
+    <flag name="CXXFLAGS" value="I$(PAPARAZZI_SRC)/sw/ext/opencv_bebop/install_pc/include"/>
+    <!-- <flag name="CXXFLAGS" value="O3"/> -->
+
+    <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/lib"/>
+    <flag name="LDFLAGS" value="lopencv_world"/>
+    <flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install_pc/share/OpenCV/3rdparty/lib"/>
+    <flag name="LDFLAGS" value="llibprotobuf"/>
+    <flag name="LDFLAGS" value="lquirc"/>
+    <flag name="LDFLAGS" value="L/usr/lib/x86_64-linux-gnu"/>
+    <flag name="LDFLAGS" value="ljpeg"/>
+    <flag name="LDFLAGS" value="lpng"/>
+    <flag name="LDFLAGS" value="ltiff"/>
+    <flag name="LDFLAGS" value="L/usr/lib/x86_64-linux-gnu/hdf5/serial"/>
+    <flag name="LDFLAGS" value="lhdf5"/>
+    <flag name="LDFLAGS" value="lpthread"/>
+    <flag name="LDFLAGS" value="lsz"/>
+    <flag name="LDFLAGS" value="lz"/>
+    <flag name="LDFLAGS" value="ldl"/>
+    <flag name="LDFLAGS" value="lm"/>
+    <flag name="LDFLAGS" value="lfreetype"/>
+    <flag name="LDFLAGS" value="lharfbuzz"/>
+    <flag name="LDFLAGS" value="lrt"/>
+  </makefile>
+</module>
